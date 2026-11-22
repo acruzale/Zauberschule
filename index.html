@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Meine Zauberschule</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: candlelit, quiet, a little enchanted; the rooms do the talking
+   IDEA: a magic school you walk through; each object holds one part of your German
+   PICTURE: the room pictures fill the screen, brought to life with light, dust and candles
+   COLOUR and TYPE: near-black ink, parchment cards, old gold; Cormorant Garamond titles, Nunito text
+   LAYOUT: full-screen room, a slim top bar with rooms, station chips along the bottom, panels slide over */
+:root{color-scheme:dark;--ink:#f3e6cc;--soft:#c2b293;--gold:#d9b46a;--sheet:#1a1a1a;--line:#3b342a;--paper:#eadbb9;--pink:#2b1d12;--psoft:#6b5236;--pline:#cdb88c;--acc:#b5552f;--y:#e9c46a;--r:#d96c5f;--b:#6fa8dc;--g:#69b47a;--o:#e8954a}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0;height:100%;background:#0d0b09;color:var(--ink);font:16px/1.55 Nunito,system-ui,sans-serif;overflow:hidden}
+h1,h2,h3{font-family:'Cormorant Garamond',Georgia,serif;font-weight:700;line-height:1.1;margin:0;text-wrap:balance}
+button,input,textarea,select{font:inherit;color:inherit}button{cursor:pointer}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.top{position:fixed;top:0;left:0;right:0;z-index:3;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:10px max(2vw,12px) 26px;background:linear-gradient(#0d0b09e6,#0d0b0900);pointer-events:none}
+.top>*{pointer-events:auto}
+.top h1{font-size:clamp(24px,3vw,34px);color:var(--ink);text-shadow:0 2px 8px #000}
+.bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.bar button,#rooms button{min-height:38px;border:1px solid #d9b46a66;background:#1a1611cc;border-radius:999px;padding:4px 14px;font-weight:700;font-size:14px;color:var(--ink);backdrop-filter:blur(4px)}
+#rooms{display:flex;gap:6px;flex-wrap:wrap}#rooms button.on{background:var(--gold);color:#1a1209;border-color:var(--gold)}
+#status{font-size:12px;color:var(--soft);text-shadow:0 1px 3px #000}
+#stage{position:fixed;inset:0;overflow:hidden;touch-action:none;cursor:grab}
+#stage:active{cursor:grabbing}
+#world{position:absolute;left:0;top:0;transition:transform .25s ease-out;will-change:transform}
+#world.zooming .tag{opacity:0}#world.zooming{transition:transform .65s cubic-bezier(.6,0,.3,1)}
+#bg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
+#fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:screen}
+#tint{position:absolute;inset:0;background:#0b1640;mix-blend-mode:multiply;opacity:0;transition:opacity .8s;pointer-events:none}
+body.night #tint{background:linear-gradient(#4b5aa0,#5d6aa8)}
+#glows{position:absolute;inset:0;pointer-events:none;transition:opacity .8s}
+#glows i{position:absolute;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(#ffd27acc,#ffb04a44 40%,#ffb04a00 70%);mix-blend-mode:screen;animation:flick 2.4s ease-in-out infinite alternate}
+@keyframes flick{0%{opacity:.75;transform:translate(-50%,-50%) scale(1)}35%{opacity:1}60%{opacity:.82;transform:translate(-50%,-50%) scale(1.08)}100%{opacity:.95}}
+#spots{position:absolute;inset:0}
+.spot{position:absolute;border:0;background:transparent;border-radius:14px;transition:box-shadow .25s,background .25s}
+.spot:hover,.spot:focus-visible{background:radial-gradient(#ffe2a033,#ffe2a000 70%);box-shadow:0 0 0 2px #ffe2a088,0 0 26px #ffd27a66;outline:none}
+.tag{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;border:0;background:#1a1611d9;color:var(--ink);border-radius:999px;padding:4px 11px 4px 7px;font-size:13px;font-weight:700;white-space:nowrap;box-shadow:0 2px 10px #0008;border:1px solid #d9b46a55}
+.tag:hover{background:#2a2117f0}
+.spark{width:9px;height:9px;border-radius:50%;background:#ffe2a0;box-shadow:0 0 8px #ffd27a,0 0 16px #ffd27a;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.5);opacity:.6}}
+body.nolabels .tl{display:none}body.nolabels .tag{padding:4px;background:transparent;border-color:transparent;box-shadow:none}
+.chips{position:fixed;left:0;right:0;bottom:0;z-index:3;display:flex;gap:8px;overflow-x:auto;padding:24px max(2vw,12px) 12px;background:linear-gradient(#0d0b0900,#0d0b09e6);scrollbar-width:none}
+.chips button{flex:none;min-height:42px;border:1px solid #d9b46a55;background:#1a1611d9;border-radius:999px;padding:6px 15px;font-weight:700;color:var(--ink);backdrop-filter:blur(4px)}
+.chips button small{color:var(--soft);font-weight:600;margin-left:6px}
+.chips button:hover{border-color:var(--gold)}
+#closeup{position:fixed;inset:0;z-index:4;opacity:0;pointer-events:none;transition:opacity .6s;background:#0d0b09}#closeup img{width:100%;height:100%;object-fit:cover;transform:scale(1.15);transition:transform 1.2s cubic-bezier(.2,.7,.2,1)}#closeup.on{opacity:1}#closeup.on img{transform:scale(1)}body.night #closeup img{filter:brightness(.55) saturate(.8) sepia(.25)}
+#door{position:fixed;inset:0;z-index:8;background:#0d0b09 url(img/door.jpg) center/auto 80% no-repeat;opacity:0;pointer-events:none;transition:opacity .4s}
+#door.on{opacity:1}
+@media (prefers-reduced-motion:reduce){#glows i,.spark{animation:none}#world{transition:none}}
+/* panel */
+.ov{position:fixed;inset:0;background:rgba(5,4,3,.55);display:flex;align-items:center;justify-content:center;z-index:5;padding:12px}
+.ov[hidden]{display:none}
+.sheet{background:var(--sheet);color:var(--ink);width:min(880px,100%);max-height:92vh;overflow:auto;border-radius:20px;border:1px solid #d9b46a44;box-shadow:0 20px 60px #000c}
+.sh{display:flex;gap:14px;justify-content:space-between;align-items:center;padding:18px 22px 12px;position:sticky;top:0;background:var(--sheet);z-index:1;border-bottom:1px solid var(--line)}
+.sh h2{font-size:clamp(30px,4.4vw,42px);color:var(--ink)}
+.obj{margin:0;font-size:14px;color:var(--gold);font-weight:700}
+.en{margin:2px 0 0;color:var(--soft);font-size:15px}
+#part{flex:none;display:flex;align-items:center}#part img{display:block;height:96px;width:auto;border-radius:10px}
+.potion{width:96px;height:96px;border-radius:50%;background:conic-gradient(from 0deg,#3fbf8f,#2c7fbf,#7a4fc0,#3fbf8f);filter:blur(1px);box-shadow:0 0 30px #3fbf8f88,inset 0 0 22px #0008;animation:swirl 6s linear infinite}
+@keyframes swirl{to{transform:rotate(360deg)}}
+.x{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:#2a241c;color:var(--ink);font-size:24px;line-height:1;flex:none}
+.tabs{display:flex;gap:6px;padding:12px 22px 0}.tabs:empty{display:none}
+.tabs button,.seg button{min-height:40px;border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 16px;font-weight:700;color:var(--ink)}
+.tabs button.on,.seg button.on{background:var(--gold);color:#1a1209;border-color:var(--gold)}
+.pb{padding:16px 22px 26px}
+.seg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.note,.grp,.entry,.game,.pinc,.ytbox,.prompt{background:var(--paper);color:var(--pink);border:1px solid var(--pline);border-radius:14px}
+.note{padding:14px 16px;margin-bottom:12px}.note h3{font-size:23px;margin-bottom:6px}
+.note p{margin:4px 0}.note ul{margin:6px 0;padding-left:20px}
+.note table,.menu{border-collapse:collapse;margin:8px 0;font-size:15px}
+.note th,.note td,.menu th,.menu td{border:1px solid var(--pline);padding:6px 10px;text-align:left;vertical-align:top}
+.note tr:first-child th,.menu tr:first-child th{background:#dcc597}
+.note .hint,.grp p,.entry .pr,.game .hint,.ytbox .hint,.prompt .hint,.pinc small{color:var(--psoft)}
+mark{background:#f4d58a;color:#2b1d12;border-radius:4px;padding:0 3px}
+.na{display:flex;gap:6px;justify-content:flex-end;margin-top:6px}
+.btn{min-height:44px;border:1px solid var(--line);background:transparent;border-radius:12px;padding:6px 14px;font-weight:700;color:var(--ink)}
+.note .btn,.grp .btn,.entry .btn,.game .btn,.ytbox .btn{color:var(--pink);border-color:var(--pline)}
+.btn.main,.note .btn.main,.game .btn.main,.ytbox .btn.main,.grp .btn.main{background:var(--acc);border-color:var(--acc);color:#fff}
+.btn.sm{min-height:36px;padding:2px 10px;font-size:14px}
+.btn.danger{color:#ff9a8a}.note .btn.danger,.entry .btn.danger,.ytbox .btn.danger{color:#a8321f}
+input[type=text],input[type=date],textarea,select,input.cell{border:1px solid var(--pline);border-radius:12px;padding:10px 12px;background:#fbf4e4;color:var(--pink);font-size:16px;width:100%}
+textarea{min-height:120px;resize:vertical;line-height:1.6}
+.hint{font-size:14px;color:var(--soft);margin:4px 0 10px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.row>input{flex:1 1 180px;width:auto}
+.groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(230px,100%),1fr));gap:12px;margin-bottom:16px}
+.grp{padding:12px 14px}.grp h3{font-size:21px}.grp p{margin:2px 0 8px;font-size:14px}
+.chip{display:inline-flex;align-items:center;gap:2px;background:#fbf4e4;color:var(--pink);border:1px solid var(--pline);border-radius:999px;padding:2px 4px 2px 10px;margin:0 4px 6px 0;font-size:15px}
+.chip button{border:0;background:none;width:26px;height:26px;border-radius:50%;color:var(--psoft)}
+.c-koord{border-left:8px solid var(--y)}.c-sub,.c-dat{border-left:8px solid var(--r)}.c-adv{border-left:8px solid var(--b)}.c-wech{border-left:8px solid var(--o)}.c-akk{border-left:8px solid var(--g)}
+.game{padding:18px;margin-bottom:16px;text-align:center}
+.game .seg button{border-color:var(--pline);color:var(--pink)}.game .seg button.on{background:var(--pink);color:var(--paper);border-color:var(--pink)}
+.big{font-family:'Cormorant Garamond',Georgia,serif;font-weight:700;font-size:clamp(34px,6vw,52px);line-height:1.1;margin:8px 0 14px}
+.tiles{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;min-height:56px;padding:8px;border-radius:14px}
+.tiles.ans{background:#f5ead1;border:2px dashed var(--pline);margin-bottom:10px}
+.tile{min-height:44px;border:2px solid #b8955f;background:#fff8e8;color:#2b1d12;border-radius:10px;padding:6px 12px;font-weight:700;font-size:17px}
+.fb{min-height:28px;margin:10px 0 0;font-weight:700}.fb.ok{color:#2f7a3e}.fb.bad{color:#a8321f}
+.jars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.jars button{min-height:64px;border-radius:16px;border:0;font-weight:700;color:#fff;padding:8px}
+.menu{margin:0 auto 12px}.menu input.cell{width:84px;padding:6px 8px;text-align:center}
+.cell.ok{border-color:#2f7a3e;background:#e4f4e6}.cell.bad{border-color:#a8321f;background:#fbe4e1}.menu small{display:block;color:#a8321f;font-weight:700}
+.card{min-height:190px;border-radius:16px;border:0;width:100%;background:#fbf4e4;color:#2b1d12;padding:20px;box-shadow:0 4px 0 #cdb88c;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:6px}
+.card dl{display:grid;grid-template-columns:auto auto;gap:4px 14px;margin:0;text-align:left;font-size:18px}.card dt{color:#7a6046}.card dd{margin:0;font-weight:700}
+.vt td,.vt th{padding:5px 8px;border-bottom:1px solid var(--line);text-align:left;font-size:15px}.vt{border-collapse:collapse;width:100%}
+.recs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(170px,100%),1fr));gap:14px}
+.recw{display:flex;flex-direction:column;gap:8px}
+.rec{border:0;border-radius:14px;aspect-ratio:1;display:flex;flex-direction:column;justify-content:flex-end;padding:14px;color:#fff;text-align:left;font-family:'Cormorant Garamond',serif;font-weight:700;font-size:23px;line-height:1.1;box-shadow:0 6px 0 rgba(0,0,0,.3);position:relative;overflow:hidden;text-decoration:none}
+.rec small{font-family:Nunito,sans-serif;font-size:14px;opacity:.9}.rec.on{outline:3px solid var(--gold);outline-offset:3px}
+.rec svg{position:absolute;inset:0;width:100%;height:100%}.rec span{position:relative}
+.yt{font-weight:700;color:#f2b98a;text-decoration:none;padding:6px 2px}
+.ytbox{padding:12px 16px;margin-top:18px}.ytbox summary{cursor:pointer;min-height:32px}
+.jstats{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:14px;color:var(--soft);margin:8px 0 12px}
+.entry{padding:12px 16px;margin-bottom:10px}.entry h3{font-size:20px}.entry p{white-space:pre-wrap;margin:6px 0}.entry .pr{font-size:14px;margin:2px 0}
+.prompt{padding:10px 14px;margin:10px 0}.prompt b{font-family:'Cormorant Garamond',serif;font-size:23px}
+.pins{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(200px,100%),1fr));gap:12px;margin-bottom:14px}
+.pinc{padding:16px;text-align:left;min-height:96px;font-weight:700;font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--pink)}
+.pinc small{display:block;font-family:Nunito,sans-serif;font-weight:400;font-size:14px}
+.prog{height:14px;border-radius:99px;background:var(--pline);overflow:hidden}.prog i{display:block;height:100%;background:#4f8a5a}
+.vrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 32px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--pline)}.vrow:last-child{border-bottom:0}.vrow button{border:0;background:none;width:32px;height:32px;border-radius:50%;color:var(--psoft);font-size:18px}
+.mmlist{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.mmlist button{min-height:40px;border:1px solid #9fd0ff55;border-radius:999px;padding:6px 14px;font-weight:700;background:#0f1a33;color:#e8f3ff}
+.flash{animation:flash 1.6s ease-out}@keyframes flash{0%{box-shadow:0 0 0 5px #ffd36b}100%{box-shadow:0 0 0 0 transparent}}
+.scroll{overflow-x:auto}
+/* telescope eyepiece */
+#eye{position:fixed;inset:0;z-index:6;background:radial-gradient(#0a0f1f,#020309 70%);display:flex;flex-direction:column;align-items:center;justify-content:safe center;padding-top:64px!important;gap:12px;padding:12px;overflow:auto}
+#eye[hidden]{display:none}
+.lens{position:relative;width:min(88vw,70vh);aspect-ratio:1;border-radius:50%;padding:min(2.6vw,22px);background:radial-gradient(circle,#0000 64%,#2b2014 65%,#8a6a3a 69%,#3a2a18 72%,#c9a35e 74%,#3b2c1a 78%,#14100a 80%);box-shadow:0 0 60px #000,0 0 0 2px #000 inset;flex:none}
+#eyesvg{width:100%;height:100%;display:block;border-radius:50%;box-shadow:inset 0 0 60px #000}
+#eyesvg .cname{font-family:'Cormorant Garamond',serif;font-weight:700;fill:#f3e6cc;letter-spacing:.04em}
+#eyesvg .con{cursor:pointer}#eyesvg .star[data-act]{cursor:pointer}#eyesvg .star[data-act]:hover circle{fill:#fff7d0}
+#eyesvg .tw{animation:tw 3s ease-in-out infinite}@keyframes tw{50%{opacity:.15}}
+#eyelist{width:min(880px,94vw);text-align:center;color:#d8e6ff}#eyelist h3{font-size:28px;color:#f3e6cc}#eyelist .mmlist{justify-content:center}
+.eyebar{position:fixed;top:12px;right:12px;left:12px;display:flex;justify-content:space-between;gap:8px;z-index:1}
+.eyebar button{min-height:42px;border:1px solid #9fd0ff55;background:#0f1a33cc;color:#e8f3ff;border-radius:999px;padding:4px 16px;font-weight:700}
+@media(max-width:600px){.sh{padding:14px 16px 10px}.pb{padding:14px 16px 22px}.tabs{padding:10px 16px 0}.ov{padding:0}.sheet{max-height:100vh;height:100%;border-radius:0}#part img,.potion{height:64px;width:auto}.potion{width:64px}.tag{font-size:11px}.chips button small{display:none}}
+</style>
+</head>
+<body>
+<main id="stage" aria-label="Room"><div id="world"><img id="bg" alt="" draggable="false"><canvas id="fx"></canvas><div id="tint"></div><div id="glows"></div><div id="spots"></div></div></main>
+<div id="closeup" aria-hidden="true"><img src="img/book-closeup.jpg" alt=""></div>
+<header class="top"><h1>Meine Zauberschule</h1><div class="bar"><nav id="rooms" aria-label="Rooms"></nav><button id="dn"></button><button id="lb"></button><span id="status">Loading…</span></div></header>
+<nav class="chips" id="chips" aria-label="Things in this room"></nav>
+<div id="eye" hidden role="dialog" aria-modal="true" aria-label="Telescope"><div class="eyebar"><button id="eyeback" data-act="eyeback" hidden>← Whole sky</button><span></span><button id="eyeclose" data-act="eyeclose">Close ×</button></div><div class="lens"><svg id="eyesvg" viewBox="0 0 1000 1000" role="group" aria-label="Constellations of your notes"></svg></div><div id="eyelist"></div></div>
+<div class="ov" id="ov" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ptitle">
+    <header class="sh"><div><p class="obj" id="pobj"></p><h2 id="ptitle"></h2><p class="en" id="pen"></p></div><div class="row" style="flex-wrap:nowrap"><div id="part"></div><button class="x" id="pclose" aria-label="Close">×</button></div></header>
+    <nav class="tabs" id="ptabs"></nav>
+    <div class="pb" id="pbody"></div>
+  </div>
+</div>
+<script>
+{
+const $=s=>document.querySelector(s);
+const NS='http://www.w3.org/2000/svg';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const inl=s=>s.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/==(.+?)==/g,'<mark>$1</mark>');
+function md(src){const L=esc(src).split('\n');let h='',i=0;while(i<L.length){const l=L[i];
+  if(l.trim().startsWith('|')){const rows=[];while(i<L.length&&L[i].trim().startsWith('|')){rows.push(L[i].trim().replace(/^\||\|$/g,'').split('|'));i++}
+    h+='<div class="scroll"><table>'+rows.map((r,j)=>'<tr>'+r.map((c,k)=>(j===0||k===0)?`<th>${inl(c.trim())}</th>`:`<td>${inl(c.trim())}</td>`).join('')+'</tr>').join('')+'</table></div>';continue}
+  if(l.startsWith('- ')){const it=[];while(i<L.length&&L[i].startsWith('- ')){it.push(L[i].slice(2));i++}h+='<ul>'+it.map(x=>`<li>${inl(x)}</li>`).join('')+'</ul>';continue}
+  if(l.trim())h+=`<p>${inl(l)}</p>`;i++}return h}
+const rid=()=>Math.random().toString(36).slice(2,9);
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=a=>a[Math.random()*a.length|0];
+const N=(t,b)=>({id:rid(),t,b});
+const today=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+
+/* ---------- starter content (from the mind map) ---------- */
+const DEF={mood:'morgen',leaves:3,correct:0,
+notes:{
+satzbau:[
+N('Hauptsatz · main clause','The conjugated verb is always in **position 2**.\n- ==Ich== **trinke** heute einen Kaffee.\n- Heute **trinke** ==ich== einen Kaffee.\nIf something else comes first, the subject moves behind the verb.'),
+N('Nebensatz · subordinate clause','Main clause, + connector + subject + … + **verb at the end**.\n- Ich bleibe zu Hause, **weil** ich müde **bin**.\nStarts with weil, dass, wenn, ob … (see the cups: Konnektoren).'),
+N('Relativsatz · relative clause','Main clause (with the noun), + relative pronoun + … + **verb at the end**.\nThe pronoun takes **gender + number** from the noun, and its **case** from its job in the relative clause.\n- Das ist der Mann, **der** in Zürich **wohnt**.\n- Das ist der Mann, **den** ich gut **kenne**.\n| |Nom|Akk|Dat|Gen\n|M|der|den|dem|dessen\n|F|die|die|der|deren\n|N|das|das|dem|dessen\n|Pl|die|die|denen|deren'),
+N('TeKaMoLo · adverbial word order','Extra info after the verb goes: **Te**mporal (wann?) → **Ka**usal (warum?) → **Mo**dal (wie?) → **Lo**kal (wo/wohin?).\n- Ich fahre ==heute== ==wegen des Regens== ==mit dem Bus== ==ins Büro==.\n- Or start with one of them: **Heute** fahre ich mit dem Bus ins Büro.')],
+faelle:[
+N('Die vier Fälle · the four cases','| |Frage|Rolle\n|Nominativ|Wer? Was?|subject, doing the action\n|Akkusativ|Wen? Was?|target of the action\n|Dativ|Wem?|recipient of the outcome\n|Genitiv|Wessen?|possession'),
+N('Artikel · articles','| |M|F|N|Pl\n|Nom|der / ein|die / eine|das / ein|die\n|Akk|den / einen|die / eine|das / ein|die\n|Dat|dem / einem|der / einer|dem / einem|den (+n)\n|Gen|des / eines (+s)|der / einer|des / eines (+s)|der'),
+N('Endungen merken · endings to remember','- Only **masculine** changes in Akkusativ: der → **den**\n- Dative plural: the noun gets **-n** → mit den Kinder**n**\n- Genitive M/N: the noun gets **-s / -es** → des Mann**es**, des Auto**s**')],
+praep:[
+N('Akkusativ-Präpositionen','**DOGFU**: durch, ohne, gegen, für, um\n- Ich gehe **durch den** Park.'),
+N('Dativ-Präpositionen','aus, außer (except), bei, mit, nach, seit, von, zu, gegenüber (across from)\n- Ich fahre **mit dem** Bus.\n- **nach** for countries and cities without an article: nach Zürich, nach Spanien.'),
+N('Wechselpräpositionen · 2-way','an, auf, hinter, in, neben, über, unter, vor, zwischen\n- **Wohin?** (direction, movement) → Akkusativ: Ich setze das Glas **auf den** Tisch.\n- **Wo?** (location) → Dativ: Das Glas steht **auf dem** Tisch.\nentlang (along) is special: den Fluss **entlang** (Akk, after the noun).'),
+N('Kurzformen · contractions','| |Kurzform\n|bei dem|beim\n|von dem|vom\n|zu dem|zum\n|zu der|zur\n|an dem|am\n|in dem|im\n|an das|ans\n|in das|ins\nPlural never contracts: bei den, von den, zu den.')],
+verben:[
+N('Präsens · present endings','Stem + ending: ich **-e**, du **-st**, er/sie/es **-t**, wir **-en**, ihr **-t**, sie/Sie **-en**\n- mach**e**, mach**st**, mach**t**, mach**en**, mach**t**, mach**en**'),
+N('Regelmäßig / unregelmäßig','**Regular (weak):** the stem stays the same, just add endings.\n**Irregular (strong):** the stem changes → fahren, du f**ä**hrst, er f**u**hr.'),
+N('Perfekt · spoken past','Subject + **haben/sein** (position 2) + … + **Partizip II** (end).\n- Ich **habe** einen Kaffee **getrunken**.\n- **sein** for movement or a change of state: Ich **bin** nach Hause **gegangen**.'),
+N('Partizip II','- Regular: **ge** + stem + **t** → gemacht\n- Irregular: **ge** + (changed) stem + **en** → gegangen, geschrieben\n- Separable: prefix + **ge** + … → aufgemacht, eingekauft\n- No ge- with be-, emp-, ent-, er-, ge-, miss-, ver-, zer- and -ieren → besucht, verstanden, studiert'),
+N('Präteritum · simple past','Mostly used in writing. In speech: **sein, haben** and **modal verbs** → ich war, ich hatte, ich konnte.\n- Regular: stem + -te, -test, -te, -ten, -tet, -ten → ich mach**te**'),
+N('Modalverben','They express necessity, permission, ability, preference and obligation.\nkönnen (can), müssen (must), dürfen (may), wollen (want), sollen (should), mögen (like)\n- Modal verb in position 2, the other verb as **infinitive at the end**: Ich **muss** heute **arbeiten**.')],
+konn:[
+N('Koordinierend · Konjunktionen','Verb stays in **position 2**. Remember **ADUSO**: aber, denn (doch), und, sondern, oder.\n- Ich bin müde, **aber** ich **lerne** noch.'),
+N('Subordinierend · Subjunktionen','Verb moves to the **end**.\n- Ich lerne Deutsch, **weil** ich es jeden Tag **brauche**.'),
+N('Adverbial · Konjunktionaladverbien','The connector takes position 1, so the **verb comes next and the subject right after**.\n- Es regnet, **deshalb** **nehme** ==ich== den Bus.')],
+'pin:fragen':[
+N('Höflich fragen · asking politely','- **Kannst du bitte** das Fenster aufmachen?\n- **Bring mir bitte** einen Kaffee. (du)\n- **Bringen Sie mir bitte** einen Kaffee. (Sie, polite)'),
+N('Ja sagen · saying yes','Ja! · Gute Idee! · Das passt! · Klar! · Gerne! · Natürlich!\n- **Lass uns** das machen! (Lass uns + Infinitiv = Let\'s …)')]
+},
+sentences:['Ich | fahre | heute | wegen des Regens | mit dem Bus | ins Büro.','Heute | fahre | ich | mit dem Bus | ins Büro.','Ich | bleibe | zu Hause, | weil | ich | müde | bin.','Das ist | der Mann, | der | in Zürich | wohnt.','Es regnet, | deshalb | trinke | ich | einen Tee.','Ich | weiß, | dass | du | heute | arbeiten | musst.','Ich | habe | gestern | einen Kuchen | gebacken.','Ich | muss | morgen | früh | aufstehen.'],
+preps:{akk:['durch','ohne','gegen','für','um'],dat:['aus','außer','bei','mit','nach','seit','von','zu','gegenüber'],wech:['an','auf','hinter','in','neben','über','unter','vor','zwischen']},
+contr:[['bei dem','beim'],['von dem','vom'],['zu dem','zum'],['zu der','zur'],['an dem','am'],['in dem','im'],['an das','ans'],['in das','ins']],
+conn:{koord:['aber','denn','doch','oder','sondern','und'],
+sub:['als','bevor','bis','da','damit (so that)','dass','ehe','falls','indem','nachdem','ob','obgleich','obwohl','obschon','seit','seitdem (since)','sobald','sodass','sofern','solange','sooft','soweit','soviel','während','weil','wenn','wie','wohingegen'],
+adv:['allerdings','also','andererseits','anschließend','außerdem','beziehungsweise','dabei','dadurch','dafür','dagegen','damit (with that)','danach','dann','darauf','darum','davor','dazu','demnach','deshalb','deswegen','einerseits','entweder … oder','ferner','folglich','genauso','immerhin','inzwischen','jedoch','schließlich','seitdem (since then)','somit','sonst','später','trotzdem','vorher','weder … noch','zuerst','zuvor','zwar']},
+verbs:[['machen','make, do','machte','gemacht','haben'],['gehen','go','ging','gegangen','sein'],['fahren','drive, go','fuhr','gefahren','sein'],['kommen','come','kam','gekommen','sein'],['sein','be','war','gewesen','sein'],['haben','have','hatte','gehabt','haben'],['werden','become','wurde','geworden','sein'],['schreiben','write','schrieb','geschrieben','haben'],['lesen','read','las','gelesen','haben'],['sprechen','speak','sprach','gesprochen','haben'],['essen','eat','aß','gegessen','haben'],['trinken','drink','trank','getrunken','haben'],['kaufen','buy','kaufte','gekauft','haben'],['einkaufen','go shopping','kaufte ein','eingekauft','haben'],['aufstehen','get up','stand auf','aufgestanden','sein'],['besuchen','visit','besuchte','besucht','haben'],['studieren','study','studierte','studiert','haben'],['verstehen','understand','verstand','verstanden','haben'],['bleiben','stay','blieb','geblieben','sein'],['können','can','konnte','gekonnt','haben'],['müssen','must','musste','gemusst','haben'],['wissen','know (a fact)','wusste','gewusst','haben']].map(([inf,en,prat,p2,aux])=>({inf,en,prat,p2,aux})),
+pins:[{id:'fragen',title:'Fragen, Ja & Nein'}],links:{},myrecs:[],inbox:[]};
+
+/* ---------- lesson notes (Sommer + Herbst), added as content v2 ---------- */
+const M=(id,t,b)=>({id:'v2-'+id,t,b});
+const ADD2={
+notes:{
+faelle:[
+M('adj-def','Adjektive nach der / die / das','| |M|F|N|Pl\n|Nom|der alt**e** Mann|die alt**e** Frau|das alt**e** Haus|die alt**en** Häuser\n|Akk|den alt**en** Mann|die alt**e** Frau|das alt**e** Haus|die alt**en** Häuser\n|Dat|dem alt**en** Mann|der alt**en** Frau|dem alt**en** Haus|den alt**en** Häusern\n|Gen|des alt**en** Mannes|der alt**en** Frau|des alt**en** Hauses|der alt**en** Häuser\nRule: **-e** in the five easy spots (all Nominativ singular + Akkusativ F/N). Everywhere else **-en**. Also after dieser, jeder, welcher.'),
+M('adj-ind','Adjektive nach ein / kein / mein','| |M|F|N|Pl\n|Nom|ein klein**er** Hund|eine klein**e** Katze|ein klein**es** Pferd|keine klein**en** Tiere\n|Akk|einen klein**en** Hund|eine klein**e** Katze|ein klein**es** Pferd|keine klein**en** Tiere\n|Dat|einem klein**en** Hund|einer klein**en** Katze|einem klein**en** Pferd|keinen klein**en** Tieren\n|Gen|eines klein**en** Hundes|einer klein**en** Katze|eines klein**en** Pferdes|keiner klein**en** Tiere\nWhere ein has no ending, the adjective shows the gender: ein klein**er** Hund (der), ein klein**es** Pferd (das).\n- Es gibt ==einen sonnigen== Tag und ==ein schönes== Mädchen mit ==einem kleinen== Hund.\n- Ich sehe auch ==ein altes== Gebäude.'),
+M('adj-null','Adjektive ohne Artikel','| |M|F|N|Pl\n|Nom|heiß**er** Kaffee|frisch**e** Milch|kalt**es** Wasser|rot**e** Äpfel\n|Akk|heiß**en** Kaffee|frisch**e** Milch|kalt**es** Wasser|rot**e** Äpfel\n|Dat|heiß**em** Kaffee|frisch**er** Milch|kalt**em** Wasser|rot**en** Äpfeln\n|Gen|heiß**en** Kaffees|frisch**er** Milch|kalt**en** Wassers|rot**er** Äpfel\nNo article, so the adjective does its job and takes the der/die/das ending (heiß**er** like de**r**).'),
+M('adj-alone','Adjektiv allein · no ending','After sein, werden, finden the adjective has **no ending**:\n- Die Pflanze ist exotisch. (not: exotische)\n- But with a noun after it: Das ist eine ==italienische== Stadt.'),
+M('n-dekl','n-Deklination','Some masculine nouns add **-(e)n** everywhere except Nominativ singular:\n- der Name → den Name**n**, dem Name**n**, des Name**ns**\n- Ich weiß den Namen des Spiels nicht.\nAlso: der Mensch, der Junge, der Kollege, der Nachbar, der Student, der Herr.'),
+M('hints','Welcher Fall? Schnelle Hinweise','- **Es gibt / Ich sehe** → Akkusativ: Ich sehe einen Mann und einen Hai.\n- **Auf dem Bild ist** → Nominativ: Auf dem Bild ist ein Mann.\n- **Dativ-Verben:** helfen, danken, gefallen, gehören, antworten → Ich helfe meinem Nachbarn.\n- **wegen** + Genitiv: wegen des Wetters, wegen der Freundin\n- Genitiv = whose: für den Geburtstag **meines Freundes**, die Ehefrau **des Malers**')],
+praep:[
+M('seit-vor','seit oder vor? · time','Both take Dativ.\n- **vor** = ago, finished: Vor drei Tagen habe ich es gekauft.\n- **seit** = since / for, still happening: Seit sechs Jahren lerne ich Deutsch.'),
+M('wohin','zu, nach, bei, von, aus','- **zu** people and places: zum Arzt, zum Bahnhof, zur Nachbarin, zu den Freunden\n- **nach** cities and countries without article: nach Deutschland, nach Berlin; also nach Hause\n- **bei** at someone\'s place: beim Arzt, bei der Nachbarin, bei ihr (at her place)\n- **von** from (a person or place): vom Arzt, vom Stadion\n- **aus** from (origin): aus Mexiko, aus der Nähe von Frankfurt'),
+M('im-am','im, am, ans, ins','- im Garten (der), im Meer (das), im Beet (das)\n- **Wohin?** ans Meer fahren, ins Bett gehen\n- **Wo?** am Meer sein, im Bett liegen')],
+verben:[
+M('sein-haben','Perfekt: sein oder haben?','**sein**: movement from A to B, or a change of state.\n- Ich bin nach Hause gegangen. Er ist eingeschlafen. Das Kaninchen ist gestorben.\n- Also bleiben, passieren, werden, sein: Sie sind zu Hause geblieben.\n**haben**: everything else, and when there is an Akkusativ object or the verb is reflexive.\n- Sie hat die Vase zerbrochen. (Akk) · Die Vase ist zerbrochen. (change of state)\n- Ich habe das Auto in die Garage gefahren. (Akk)\n- Wir haben getanzt. Ich habe mich erinnert.\n- stehen, liegen, sitzen: hat gestanden (in Switzerland often: ist gestanden)'),
+M('trennbar','Trennbare Verben','The prefix goes to the **end** of a main clause.\n- Ich mache das Fenster **auf**. Die Bahn kommt um halb zehn **an**.\n- Das Fest findet am Samstag **statt**. Hast du am Wochenende etwas **vor**?\n- Common prefixes: an-, auf-, aus-, ein-, mit-, vor-, zurück-, los-, teil-, statt-, fern-, nach-, bei-\n- In a Nebensatz it stays together: …, wenn ich **aufstehe**.\n- Perfekt: auf**ge**macht, um**ge**zogen, bei**ge**bracht'),
+M('untrennbar','Untrennbare Verben','be-, emp-, ent-, er-, ge-, miss-, ver-, zer- never split and have **no ge-**: bekommen, verstehen, empfehlen → empfohlen.\n- beitragen (trennbar: trägt … bei) vs. betragen (untrennbar: beträgt = amounts to)'),
+M('modal-tab','Modalverben im Präsens','| |dürfen|müssen|wollen|können\n|ich|darf|muss|will|kann\n|du|darfst|musst|willst|kannst\n|er/sie|darf|muss|will|kann\n|wir|dürfen|müssen|wollen|können\n|ihr|dürft|müsst|wollt|könnt\n|sie/Sie|dürfen|müssen|wollen|können\nich and er/sie have the **same form**, with no -t.'),
+M('wissen','wissen oder kennen?','- **wissen** = know a fact: ich weiß, du weißt, er weiß, wir wissen, ihr wisst, sie wissen\n- Wir wissen, wann der Zug aus Genf ankommt.\n- **kennen** = know a person, place or word: Ich kannte diese Wörter nicht.'),
+M('lassen','lassen · get something done','- Ich lasse mein Auto reparieren.\n- Er lässt sich ein Tattoo stechen.\n- ich lasse, du lässt, er lässt'),
+M('treffen','treffen oder sich treffen?','- Ich habe meinen Freund getroffen. → by chance\n- Ich habe mich mit meinem Freund getroffen. → planned')],
+konn:[
+M('weil-denn','weil, denn, wegen','- **weil** → verb at the end: …, weil er mit Senioren geredet **hat**.\n- **denn** → normal order: …, denn er **hat** mit Senioren geredet.\n- **wegen** + noun in Genitiv: wegen des Wetters'),
+M('obwohl','obwohl und trotzdem','Both show an unexpected result.\n- **obwohl** starts a Nebensatz: Laura feiert eine Party, obwohl sie Fieber **hat**.\n- **trotzdem** joins two main clauses: Frau Winter ist krank. Trotzdem **geht** sie ins Büro.'),
+M('damit','damit und um … zu · purpose','- **damit** + Nebensatz: …, damit ich mein Deutsch verbessern **kann**.\n- **um … zu** when the subject stays the same: Ich nehme Kurse, um B2 **zu erreichen**.'),
+M('ob','ob · indirect questions','A yes/no question inside a sentence uses **ob**, verb at the end, and a **full stop**.\n- Ich möchte wissen, ob du die Hausaufgaben gemacht hast.'),
+M('ns-perfekt','Nebensatz im Perfekt','The helper verb goes to the **very end**:\n- …, weil ich lange mit Kunden telefoniert **habe**.\n- …, dass sie gestern ins Kino gegangen **ist**.'),
+M('pos1','Kleine Wörter auf Position 1','vielleicht (maybe), übrigens (by the way), allerdings (however), eigentlich (actually)\n- Allerdings **ist** sie zu teuer. Vielleicht **können** wir uns treffen.\n- With a comma it doesn\'t count: Übrigens, **hast** du den Film gesehen?')],
+satzbau:[
+M('inversion','Inversion · verb before subject','Anything other than the subject in position 1 pushes the subject **behind** the verb.\n- Mittags **hat** ==Anna== Nudeln gekocht. (not: Mittags Anna hat)\n- After a Nebensatz too: Wenn es Montag ist, **spreche** ==ich== Deutsch.\n- Questions: **Sollte** ==man== deswegen …?'),
+M('punkt','Satzzeichen · punctuation','- First word capitalised, full stop at the end.\n- Comma before every Nebensatz: …, weil … / …, dass … / …, die …\n- Numbers: 2.800 (thousands point), 37,8 Grad (decimal comma)')],
+'pin:fragen':[M('ja2','Mehr Ja-Antworten','Das klingt toll! · Ich bin dabei. · Absolut, toller Vorschlag! · Lass uns den Film morgen Abend schauen!')],
+'pin:meinung':[M('m1','Meine Meinung sagen','- Meiner Meinung nach ist das keine gute Idee, weil …\n- Ich bin der Ansicht, dass …\n- Ich finde, dass … · Persönlich glaube ich, dass …\n- Es hängt von … ab. (It depends on …)\n- Es kommt darauf an, wo man lebt.'),M('m2','Vor- und Nachteile','- Ein Vorteil ist, dass …\n- Jetzt zu den Nachteilen: …\n- Einerseits … andererseits …')],
+'pin:praes':[M('p1','Aufbau einer Präsentation','- Mein Thema ist … / Ich beginne mit …\n- Dann spreche ich über … / Kommen wir zu den Vor- und Nachteilen …\n- Meiner Meinung nach … / Am Ende sage ich …\n- Hiermit beende ich meine Präsentation. Vielen Dank fürs Zuhören!')],
+'pin:bitten':[M('b1','Höflich bitten · Konjunktiv II','- **Könntest** du bitte Bratwürstchen kaufen?\n- **Würdest** du mir helfen?\n- Ich **hätte** gern 200 Gramm …'),M('b2','Vorschläge machen','- **Lass uns** einen Film schauen! (Lass uns + Infinitiv = Let\'s …)\n- Du könntest … / Du solltest …\n- An deiner Stelle würde ich …\n- Ich schlage vor, dass du Freunde triffst.\n- Mein Tipp ist, … zu tun.')],
+'pin:bilder':[M('i1','Was ist zu sehen?','- Auf dem Bild ist (Nom) … / Ich sehe, Es gibt (Akk) …\n- Im Vordergrund / Im Zentrum / Im Hintergrund sieht man …\n- Auf dem ersten Foto gibt es …\n- Ein Kind sitzt, **während** das andere einen Regenschirm hält.'),M('i2','Eindruck & Interpretation','- Auf den ersten Blick wirkt das Bild ruhig / dramatisch.\n- Im Bild dominieren warme / kalte Farben.\n- Die Farben erzeugen eine fröhliche / melancholische Stimmung.\n- Der Maler möchte zeigen, dass … · Die Figur personifiziert …')],
+'pin:nation':[M('n1','Länder & Nationalitäten','|Land|Person (m / f)|Adjektiv\n|Mexiko|Mexikaner / Mexikanerin|mexikanisch\n|Kanada|Kanadier / Kanadierin|kanadisch\n|Deutschland|Deutscher / Deutsche|deutsch\n|Frankreich|Franzose / Französin|französisch\n|Spanien|Spanier / Spanierin|spanisch\n|Italien|Italiener / Italienerin|italienisch\n|Polen|Pole / Polin|polnisch\n|Russland|Russe / Russin|russisch\n|China|Chinese / Chinesin|chinesisch\n|USA|Amerikaner / Amerikanerin|amerikanisch\n|Argentinien|Argentinier / Argentinierin|argentinisch\nNo article for the person: Ich bin Mexikanerin. Adjectives are lowercase and take endings: die mexikanische Kultur, einen mexikanischen Pass.')],
+'pin:briefe':[M('e1','Aufbau einer E-Mail','Betreff → Anrede → Text → Schlusssatz → Grußformel → Unterschrift\n- Liebe Sandra, / Lieber Tom, / Sehr geehrte Frau …,\n- Ich freue mich darauf, bald von dir zu hören.\n- Viele Grüße, / Liebe Grüße, / Mit freundlichen Grüßen')],
+'pin:laute':[M('a1','Aussprache, Zahlen & Buchstaben','- Buchstaben: c (tse), g (ge), j (jott), q (ku), v (fau), w (we), y (ypsilon), z (tsett)\n- äu = eu (Häuser) · ei, ai, ey sound the same\n- qu = kw: quer, Quatsch, Quark\n- -zehn: vierzehn, sechzehn, siebzehn · -zig: dreißig, sechzig, siebzig\n- 51 = einundfünfzig (the ones come first)')],
+'pin:wort':[M('w1','Gesundheit','der Hals, die Halsschmerzen, der Husten · ein Medikament verschreiben · gut / schlecht vertragen · die Wirkung, die Nebenwirkung · verursachen (cause) · reisekrank werden · erschöpft (kaputt = informal)'),M('w2','Schule & Alltag','verschlafen (oversleep) · vorbereiten · unterrichten · jemandem etwas beibringen (lehren = formal) · der Stundenplan · Ruhezeiten einhalten · Pflanzen gießen · die Einkäufe wegräumen'),M('w3','Natur & Umwelt','der Klimawandel · die Erderwärmung · die Treibhausgase · die Gletscher schmelzen · die Überschwemmung (flood) · Tiere fressen, Menschen essen'),M('w4','Gefühle','sich gut / schlecht / verloren fühlen · Mitleid haben mit · unterschätzen / überschätzen · Höhenangst haben · geduldig sein')],
+'pin:doppel':[M('d1','Doppelbedeutungen','- die Erde: Planet / Blumenerde\n- die Note: Schulnote / Musiknote\n- die Birne: Obst / Glühbirne\n- die Geschichte: story / history\n- die Decke: Bettdecke / ceiling\n- die Bank: Geldbank / Parkbank\n- der Hahn: Wasserhahn / male chicken\n- das Schloss: Türschloss / Palast\n- die Schlange: Reptil / a queue\n- die Karte: Spielkarte / Landkarte')],
+'pin:fehler':[M('f1','Aufpassen!','- Verb in position 2 after a time word: Mittags **hat** Anna … (not: Mittags Anna hat)\n- weil / dass / wenn → verb at the end: …, weil es Jahre ohne Pause **waren**.\n- gehen, laufen, umziehen, schwimmen → Perfekt with **sein**: Ich **bin** umgezogen.\n- die Küche (kitchen) vs. der Kuchen (cake) · das Rezept (recipe)\n- bedeuten (mean) vs. meinen (think, mean to say)\n- Plural: das Ding → die Dinge, der Fluss → die Flüsse\n- kein + noun: Ich habe **kein** Facebook.')]
+},
+pins:[['meinung','Meinung & Diskussion'],['praes','Präsentieren'],['bitten','Bitten & Vorschläge'],['bilder','Bilder beschreiben'],['nation','Länder & Nationalitäten'],['briefe','E-Mails & Briefe'],['laute','Aussprache & Zahlen'],['wort','Wortschatz aus dem Unterricht'],['doppel','Doppelbedeutungen'],['fehler','Meine typischen Fehler']],
+verbs:[['aufwachen','wake up','wachte auf','aufgewacht','sein'],['aufwachsen','grow up','wuchs auf','aufgewachsen','sein'],['einschlafen','fall asleep','schlief ein','eingeschlafen','sein'],['verschlafen','oversleep','verschlief','verschlafen','haben'],['helfen','help (+ Dat)','half','geholfen','haben'],['laufen','run, walk','lief','gelaufen','sein'],['nehmen','take','nahm','genommen','haben'],['sehen','see','sah','gesehen','haben'],['stehen','stand','stand','gestanden','haben'],['treffen','meet','traf','getroffen','haben'],['tun','do','tat','getan','haben'],['umziehen','move house','zog um','umgezogen','sein'],['schwimmen','swim','schwamm','geschwommen','sein'],['fliegen','fly','flog','geflogen','sein'],['steigen','rise, climb','stieg','gestiegen','sein'],['gleiten','glide','glitt','geglitten','sein'],['biegen','bend','bog','gebogen','haben'],['messen','measure','maß','gemessen','haben'],['wiegen','weigh','wog','gewogen','haben'],['schieben','push','schob','geschoben','haben'],['backen','bake','backte','gebacken','haben'],['werfen','throw','warf','geworfen','haben'],['sterben','die','starb','gestorben','sein'],['vergehen','pass (time)','verging','vergangen','sein'],['zerbrechen','break','zerbrach','zerbrochen','haben'],['empfehlen','recommend','empfahl','empfohlen','haben'],['beibringen','teach','brachte bei','beigebracht','haben'],['nachdenken','think about','dachte nach','nachgedacht','haben'],['lassen','let, have done','ließ','gelassen','haben']].map(([inf,en,prat,p2,aux])=>({inf,en,prat,p2,aux})),
+sentences:['Gestern | bin | ich | spät | nach Hause | gekommen.','Ich bin müde, | weil | ich | lange | telefoniert | habe.','Ich möchte wissen, | ob | du | die Hausaufgaben | gemacht | hast.','Mittags | hat | Anna | Nudeln | gekocht.','Obwohl | ich | müde | bin, | lerne | ich | Deutsch.','Frau Winter ist krank. | Trotzdem | geht | sie | ins Büro.','Seit | sechs Jahren | lerne | ich | Deutsch.','Vor | einem Jahr | war | ich | das erste Mal | dort.','Ich | lasse | mein Auto | reparieren.','Mein Vater | hat | mir | das Radfahren | beigebracht.','Ich | denke | über ein Problem | nach.','Die Bahn | kommt | um halb zehn | im Stadtzentrum | an.'],
+adv:['dennoch','daher']};
+function applyAdd(o){for(const [k,arr] of Object.entries(ADD2.notes)){const t=o.notes[k]||(o.notes[k]=[]);arr.forEach(n=>{if(!t.some(x=>x.id===n.id))t.push({...n})})}
+  ADD2.pins.forEach(([id,title])=>{if(!o.pins.some(p=>p.id===id))o.pins.push({id,title})});
+  ADD2.verbs.forEach(v=>{if(!o.verbs.some(x=>x.inf===v.inf))o.verbs.push({...v})});
+  ADD2.sentences.forEach(s=>{if(!o.sentences.includes(s))o.sentences.push(s)});
+  ADD2.adv.forEach(w=>{if(!o.conn.adv.includes(w))o.conn.adv.push(w)})}
+
+const OLD3=[['pin:fragen','- **Kannst du bitte** das Fenster aufmachen?\n- **Bringen Sie mir bitte** einen Kaffee?','- **Kannst du bitte** das Fenster aufmachen?\n- **Bring mir bitte** einen Kaffee. (du)\n- **Bringen Sie mir bitte** einen Kaffee. (Sie, polite)'],['pin:fragen','Ja! · Gute Idee! · Das passt! · Klar! · Gerne! · Natürlich!','Ja! · Gute Idee! · Das passt! · Klar! · Gerne! · Natürlich!\n- **Lass uns** das machen! (Lass uns + Infinitiv = Let\'s …)'],['konn','Verb stays in **position 2**.\n- Ich bin müde, **aber** ich **lerne** noch.','Verb stays in **position 2**. Remember **ADUSO**: aber, denn (doch), und, sondern, oder.\n- Ich bin müde, **aber** ich **lerne** noch.']];
+function applyAdd3(o){OLD3.forEach(([k,oldB,newB])=>{(o.notes[k]||[]).forEach(n=>{if(n.b===oldB)n.b=newB})});
+  (o.notes.verben||[]).forEach(n=>{if(n.t==='Modalverben'&&n.b.startsWith('können (can)'))n.b='They express necessity, permission, ability, preference and obligation.\n'+n.b});
+  const sub=o.conn.sub,i=sub.indexOf('sowie');if(i>-1&&!sub.includes('soviel'))sub[i]='soviel';
+  ['beziehungsweise','darauf','zwar'].forEach(w=>{if(!o.conn.adv.includes(w))o.conn.adv.push(w)})}
+/* ---------- Wortschatz tip jar ---------- */
+const VSEED=[['Gesundheit','der Hals','throat'],['Gesundheit','die Halsschmerzen','sore throat'],['Gesundheit','der Husten','cough'],['Gesundheit','ein Medikament verschreiben','to prescribe a medicine'],['Gesundheit','gut / schlecht vertragen','to tolerate well / badly'],['Gesundheit','die Wirkung','effect'],['Gesundheit','die Nebenwirkung','side effect'],['Gesundheit','verursachen','to cause'],['Gesundheit','reisekrank werden','to get travel sick'],['Gesundheit','erschöpft','exhausted'],['Gesundheit','kaputt','exhausted (informal)'],
+['Schule & Alltag','verschlafen','to oversleep'],['Schule & Alltag','vorbereiten','to prepare'],['Schule & Alltag','unterrichten','to teach'],['Schule & Alltag','jemandem etwas beibringen','to teach someone something'],['Schule & Alltag','lehren','to teach (formal)'],['Schule & Alltag','der Stundenplan','timetable'],['Schule & Alltag','die Ruhezeiten einhalten','to keep the quiet hours'],['Schule & Alltag','Pflanzen gießen','to water plants'],['Schule & Alltag','die Einkäufe wegräumen','to put the shopping away'],['Schule & Alltag','die Regel','rule'],['Schule & Alltag','der Geruch','smell'],['Schule & Alltag','wegwerfen','to throw away'],
+['Natur & Umwelt','der Klimawandel','climate change'],['Natur & Umwelt','die Erderwärmung','global warming'],['Natur & Umwelt','die Treibhausgase','greenhouse gases'],['Natur & Umwelt','die Gletscher schmelzen','the glaciers are melting'],['Natur & Umwelt','die Überschwemmung','flood'],['Natur & Umwelt','fressen','to eat (animals)'],['Natur & Umwelt','das Blumenbeet','flower bed'],['Natur & Umwelt','die Welle','wave'],['Natur & Umwelt','die Brücke','bridge'],
+['Gefühle','sich verloren fühlen','to feel lost'],['Gefühle','Mitleid haben mit','to feel sorry for'],['Gefühle','unterschätzen','to underestimate'],['Gefühle','überschätzen','to overestimate'],['Gefühle','Höhenangst haben','to be afraid of heights'],['Gefühle','geduldig sein','to be patient'],['Gefühle','beschäftigt','busy'],
+['Ausdrücke','Es hängt von … ab.','It depends on …'],['Ausdrücke','An deiner Stelle würde ich …','If I were you, I would …'],['Ausdrücke','stattfinden','to take place'],['Ausdrücke','vorhaben','to plan, have planned'],['Ausdrücke','fernsehen','to watch TV'],['Ausdrücke','empfehlen','to recommend'],['Ausdrücke','die Entfernung','distance'],['Ausdrücke','selten','rare'],['Ausdrücke','entwerfen','to design, make a draft'],['Ausdrücke','die Schwägerin','sister-in-law'],['Ausdrücke','veranstalten','to organise (an event)']].map(([topic,de,en],i)=>({id:'vs'+i,topic,de,en}));
+function applyAdd4(o){if(!o.vocab)o.vocab=VSEED.map(v=>({...v}));
+  const old=o.notes['pin:wort']||[],seed=(ADD2.notes['pin:wort']||[]);
+  const keep=old.filter(n=>{const s=seed.find(x=>x.id===n.id);return !s||s.b!==n.b||s.t!==n.t});
+  if(keep.length)o.notes.vocab=[...(o.notes.vocab||[]),...keep];
+  delete o.notes['pin:wort'];o.pins=o.pins.filter(p=>p.id!=='wort')}
+const vTopics=()=>[...new Set(S.vocab.map(v=>v.topic||'Andere'))];
+function vFiltered(){const q=(P.vs||'').toLowerCase();return S.vocab.filter(v=>(!P.vt||(v.topic||'Andere')===P.vt)&&(!q||v.de.toLowerCase().includes(q)||v.en.toLowerCase().includes(q)))}
+function vListHTML(){const list=vFiltered();if(!list.length)return '<p class="hint">No words match.</p>';
+  return vTopics().filter(t=>list.some(v=>(v.topic||'Andere')===t)).map(t=>`<div class="grp"><h3>${esc(t)}</h3>${list.filter(v=>(v.topic||'Andere')===t).map(v=>`<div class="vrow"><b lang="de">${esc(v.de)}</b><span>${esc(v.en)}</span><button data-act="vrm" data-id="${v.id}" aria-label="Remove ${esc(v.de)}">×</button></div>`).join('')}</div>`).join('')}
+function vTopicChips(){return `<div class="seg">${['',...vTopics()].map(t=>`<button data-act="vtopic" data-v="${esc(t)}" class="${(P.vt||'')===t?'on':''}">${t?esc(t):'All words'}</button>`).join('')}</div>`}
+function vocabV(){if(tab==='ueben')return vocabGame();
+  return `<div class="note"><h3>Add a word to the jar</h3><div class="groups" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:8px 0 0"><input type="text" id="vde" placeholder="Deutsch, e.g. die Brücke" lang="de"><input type="text" id="ven" placeholder="English, e.g. bridge"><input type="text" id="vtop" list="vtops" placeholder="Topic, e.g. Natur & Umwelt" value="${esc(P.vt||'')}"><button class="btn main" data-act="vadd">Add to jar</button></div><datalist id="vtops">${vTopics().map(t=>`<option value="${esc(t)}">`).join('')}</datalist><p class="hint" style="margin-top:8px">Tip: write nouns with der, die or das so you learn the gender too.</p></div>
+  <div class="row" style="margin:6px 0 12px"><input type="text" id="vsearch" placeholder="Search ${S.vocab.length} words in German or English" value="${esc(P.vs||'')}" aria-label="Search words"></div>
+  ${vTopicChips()}<div id="vlist">${vListHTML()}</div>
+  ${(S.notes.vocab||[]).length?'<h3 style="margin:20px 0 10px">Your vocabulary notes</h3>'+notesV('vocab'):''}`}
+function vNextCard(){if(!P.vq||!P.vq.length)P.vq=shuffle(vFiltered().map(v=>v.id));P.vcur=P.vq.shift();P.vflip=false}
+function vocabGame(){P.vdir=P.vdir||'de';if(!P.vcur||!S.vocab.some(v=>v.id===P.vcur))vNextCard();const v=S.vocab.find(x=>x.id===P.vcur);
+  const front=v?(P.vdir==='de'?v.de:v.en):'',back=v?(P.vdir==='de'?v.en:v.de):'';
+  return `${vTopicChips()}<div class="game"><div class="seg" style="justify-content:center"><button data-act="vdir" data-v="de" class="${P.vdir==='de'?'on':''}">Deutsch → English</button><button data-act="vdir" data-v="en" class="${P.vdir==='en'?'on':''}">English → Deutsch</button></div>
+  ${v?`<button class="card" data-act="vflip" aria-label="Flip card"><span class="hint">${esc(v.topic||'')}</span><div class="big" style="margin:4px 0;font-size:clamp(26px,5vw,40px)">${esc(front)}</div>${P.vflip?`<div style="font-size:22px;font-weight:700">${esc(back)}</div>`:'<span class="hint">Tap to see the answer</span>'}</button>`:'<p>No words in this topic yet.</p>'}
+  ${v&&P.vflip?'<div class="row" style="justify-content:center;margin-top:14px"><button class="btn" data-act="wagain">Not yet</button><button class="btn main" data-act="wknew">I knew it!</button></div>':''}</div>`+scoreLine()}
+
+const ADJ=[['Es gibt einen sonnig','Tag.','en','Akk · M'],['Ich sehe ein alt','Gebäude.','es','Akk · N'],['Das ist eine italienisch','Stadt.','e','Nom · F'],['Das Mädchen spielt mit einem klein','Hund.','en','Dat · M'],['Der alt','Mann wohnt hier.','e','Nom · M'],['Ich trinke heiß','Kaffee.','en','Akk · M · no article'],['Ein klein','Hund bellt.','er','Nom · M'],['Ich wohne in einer groß','Stadt.','en','Dat · F'],['Sie trägt ein rot','Kleid.','es','Akk · N'],['Wir essen frisch','Brot.','es','Akk · N · no article'],['Ich mag die neu','Wohnung.','e','Akk · F'],['Wir sprechen mit den nett','Nachbarn.','en','Dat · Pl'],['Kalt','Wasser ist gesund.','es','Nom · N · no article'],['Er hilft der alt','Frau.','en','Dat · F'],['Ich habe einen neu','Stundenplan.','en','Akk · M'],['Das ist ein gut','Buch.','es','Nom · N'],['Mit warm','Milch schlafe ich besser.','er','Dat · F · no article'],['Die sozial','Netzwerke sind nicht immer gut.','en','Nom · Pl'],['Der Mann im schwarz','T-Shirt lacht.','en','Dat · N (im = in dem)'],['Das ist meine klein','Schwester.','e','Nom · F']];
+
+const ST={
+satzbau:{n:'Satzbau',en:'Sentence structure & word order',obj:'Die Treppe',game:1},
+faelle:{n:'Fälle',en:'Cases & declensions',obj:'Die Porträts',game:1},
+praep:{n:'Präpositionen',en:'Prepositions & contractions',obj:'Die Truhe',game:1},
+verben:{n:'Verben',en:'Verbs & tenses',obj:'Die Bücherregale',game:1},
+konn:{n:'Konnektoren',en:'Connectors',obj:'Der Arbeitstisch',game:1},
+vocab:{n:'Wortschatz',en:'Look into the cauldron: your vocabulary',obj:'Der Kessel',game:1,tabs:[['notes','Words'],['ueben','Practice']]},
+mindmap:{n:'Sternkarte',en:'All your notes as constellations',obj:'Das Teleskop'},
+fragen:{n:'Fragen & Antworten',en:'Asking, yes & no',obj:'Die Tür'},
+tagebuch:{n:'Tagebuch',en:'Your German journal',obj:'Der Schreibtisch'},
+pin:{n:'Pergament',en:'New topics as you level up',obj:'Das Pergament'},
+platten:{n:'Musik & Licht',en:'Pick a record for the mood',obj:'Der Kronleuchter'},
+notizen:{n:'Schnellnotizen',en:'Quick notes now, sort them into the school later',obj:'Das Seehaus'},
+pflanze:{n:'Fortschritt',en:'Grows as you learn',obj:'Die Sternenfenster'}};
+const ART_IMG={praep:'img/chest.jpg',verben:'img/books.jpg',platten:'img/lantern.jpg',pflanze:'img/plant.jpg',tagebuch:'img/candle.jpg',fragen:'img/door.jpg'};
+const CG={koord:['Koordinierend','Verb stays in position 2','var(--y)'],sub:['Subordinierend','Verb goes to the end','var(--r)'],adv:['Adverbial','Verb next, then the subject','var(--b)']};
+const PG={akk:['Akkusativ','DOGFU','var(--g)'],dat:['Dativ','always Dativ','var(--r)'],wech:['Wechsel','Wohin? Akk · Wo? Dat','var(--o)']};
+const MOODS={
+morgen:{n:'Morgenlicht',en:'Morning light',bg:'linear-gradient(160deg,#ffc978,#e8834a)',ch:[[53,57,60,64],[52,55,59,62],[50,53,57,60],[48,52,55,59]],lp:1500,sec:4},
+herbst:{n:'Herbstwald',en:'Autumn forest',bg:'linear-gradient(160deg,#e38b3c,#9c3f22)',ch:[[57,60,64,67],[53,57,60,64],[48,52,55,59],[55,59,62,64]],lp:1150,sec:4.4},
+regen:{n:'Regen am Fenster',en:'Rain on the window',bg:'linear-gradient(160deg,#9fb3c2,#56738a)',ch:[[50,54,57,61],[47,50,54,57],[43,47,50,54],[45,49,52,54]],lp:1000,sec:4.8,rain:1},
+nacht:{n:'Sternennacht',en:'Starry night (turns the school to night)',bg:'linear-gradient(160deg,#3b3f74,#15172e)',ch:[[51,55,58,62],[48,51,55,58],[44,48,51,55],[46,50,53,55]],lp:820,sec:5.4}};
+const PROMPTS=[['Was hast du heute gemacht?','What did you do today?'],['Was hast du heute gegessen?','What did you eat today?'],['Wie war deine Woche?','How was your week?'],['Was machst du am Wochenende?','What are you doing at the weekend?'],['Beschreibe einen magischen Ort.','Describe a magical place.'],['Was hast du heute Neues gelernt?','What did you learn today?'],['Worauf freust du dich?','What are you looking forward to?'],['Was war heute schwierig, und warum?','What was hard today, and why? (weil …)'],['Beschreibe dein Zimmer. Wo steht was?','Describe your room: where is everything? (Wo? → Dativ)'],['Erzähl von einem Hobby.','Tell me about a hobby.'],['Wie ist das Wetter, und was machst du deshalb?','What is the weather like, and what are you doing because of it? (deshalb …)'],['Was möchtest du dieses Jahr noch lernen?','What would you still like to learn this year?']];
+
+/* ---------- state + storage ---------- */
+const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const merge=s=>{const o=structuredClone(DEF);if(s){Object.assign(o,s);o.notes={...structuredClone(DEF.notes),...(s.notes||{})};o.preps={...DEF.preps,...(s.preps||{})};o.conn={...DEF.conn,...(s.conn||{})};o.links={...(s.links||{})};o.inbox=s.inbox||[];o.myrecs=s.myrecs||[]}if((o.cv||1)<2){applyAdd(o);o.cv=2;o._mig=1}if(o.cv<3){applyAdd3(o);o.cv=3;o._mig=1}if(o.cv<4){applyAdd4(o);o.cv=4;o._mig=1}return o};
+let S=merge(LS.get('zs-state'));if(!LS.get('zs-state')){const h=new Date().getHours();S.mood=(h<7||h>=19)?'nacht':'morgen'}
+let J=LS.get('zs-journal')||[];
+let db=null,stateRef=null,jCol=null,mode='local',chain=Promise.resolve(),tSave=null;
+const status=t=>{$('#status').textContent=t};
+function save(){delete S._mig;LS.set('zs-state',S);clearTimeout(tSave);tSave=setTimeout(()=>{if(!stateRef)return;const body={v:1,s:structuredClone(S)};chain=chain.then(()=>stateRef.set(body)).then(()=>status('Saved to your account ✓')).catch(e=>status(e&&e.code==='quota_exceeded'?'Storage full: please delete some old notes':'Not saved to your account, only on this device'))},700)}
+function addLeaves(n){S.leaves+=n;drawPlant();save()}
+function registerCorrect(n){S.correct+=n;while(S.correct>=5){S.correct-=5;S.leaves++}drawPlant();save()}
+
+function setMood(m){S.mood=m}
+function drawPlant(){}function drawPins(){}function drawJar(){}
+/* ---------- rooms ---------- */
+const ROOMS={
+ klasse:{n:'Klassenzimmer',w:1920,h:768,day:'img/classroom.jpg',night:'img/classroom.jpg',tint:1,
+  glows:[[930,168,26],[968,150,26],[1006,168,26],[948,196,22],[990,196,22],[912,350,30],[1597,432,34],[1300,412,26]],
+  dust:[[40,560,700,760],[640,620,1120,768]],
+  spots:[
+   {st:'platten',r:[[900,92,132,192]],l:[966,300],lab:'Kronleuchter'},
+   {st:'faelle',r:[[756,266,56,64],[914,262,70,52],[1168,325,62,46],[774,340,50,52]],l:[868,232],lab:'Porträts · Fälle'},
+   {st:'pin',r:[[1000,252,50,62]],l:[1026,236],lab:'Pergament'},
+   {st:'fragen',r:[[836,300,66,100]],l:[868,412],lab:'Tür · Fragen'},
+   {st:'satzbau',r:[[926,398,180,104]],l:[1040,520],lab:'Treppe · Satzbau'},
+   {st:'vocab',r:[[700,518,110,70]],l:[755,604],lab:'Kessel · Wortschatz',zoom:[755,553]},
+   {st:'praep',r:[[1246,530,90,64]],l:[1290,612],lab:'Truhe · Präpositionen'},
+   {st:'verben',r:[[1446,392,118,130],[588,418,60,74]],l:[1505,380],lab:'Bücher · Verben'},
+   {st:'konn',r:[[232,552,356,170]],l:[410,540],lab:'Tisch · Konnektoren'},
+   {st:'daynight',r:[[654,276,94,196]],l:[700,262],lab:'Fenster · Tag/Nacht'}]},
+ astro:{n:'Astronomie',w:1920,h:1200,day:'img/astro-day.jpg',night:'img/astro-night.jpg',
+  glows:[[1188,70,60],[1016,160,30],[918,220,30],[1302,152,26],[1400,252,26],[1738,182,30]],
+  dust:[[0,800,700,1100]],
+  spots:[
+   {st:'mindmap',r:[[770,590,140,130]],l:[840,575],lab:'Teleskop · Mindmap',zoom:[835,655]},
+   {st:'daynight',r:[[1190,512,210,212]],l:[1295,740],lab:'Sonne & Mond · Tag/Nacht'},
+   {st:'platten',r:[[880,10,880,290]],l:[1190,310],lab:'Leuchter · Musik'},
+   {st:'pflanze',r:[[212,256,94,470],[486,312,82,400],[722,352,82,350]],l:[520,250],lab:'Sternenfenster · Fortschritt'}]},
+ bib:{n:'Bibliothek',w:1920,h:1200,day:'img/library.jpg',night:'img/library.jpg',tint:1,
+  glows:[[648,662,46],[848,668,46]],
+  dust:[[1200,300,1800,900]],
+  spots:[{st:'tagebuch',r:[[440,690,640,200]],l:[760,668],lab:'Schreibtisch · Tagebuch',zoom:[740,770]}]},
+ see:{n:'Seehaus',variants:(()=>{const sp=[{st:'notizen',r:[[720,80,380,360]],l:[905,460],lab:'Seehaus · Schnellnotizen',zoom:[905,330]},{st:'platten',r:[[1230,520,690,480]],l:[1560,500],lab:'Steg · Musik'},{st:'wetter',r:[[1150,0,770,300]],l:[1450,210],lab:'Himmel · Wetter'}];
+   return {morgen:{img:'img/lake-morgen.jpg',w:1920,h:1080,spots:sp,fx:'pollen',dust:[[0,100,800,700]]},
+     herbst:{img:'img/lake-herbst.jpg',w:1920,h:1032,fx:'leaves',dust:[[0,0,1920,700]],spots:[{st:'notizen',r:[[690,170,330,330]],l:[855,520],lab:'Seehaus · Schnellnotizen',zoom:[855,380]},{st:'platten',r:[[1000,680,290,160]],l:[1145,860],lab:'Steg · Musik'},{st:'wetter',r:[[1100,0,820,240]],l:[1450,200],lab:'Himmel · Wetter'}]},
+     regen:{img:'img/lake-regen.jpg',w:1920,h:1080,spots:sp,fx:'rain',dust:[[0,0,1920,1080]]},
+     nacht:{img:'img/lake-nacht.jpg',w:1920,h:1080,spots:sp,fx:'fireflies',dust:[[0,350,1920,1000]],glows:[[762,385,18],[848,388,18],[915,382,18],[958,385,16],[995,383,16],[960,292,22],[1052,212,26]]}}})()}};
+function RD(){const R=ROOMS[room];if(!R.variants)return R;return {...R,glows:[],dust:[],...(R.variants[S.mood]||R.variants.morgen)}}
+let room=LS.get('zs-room')||'klasse',pan={x:.5,y:.5},par={x:0,y:0},zoomT=null,showLabels=LS.get('zs-labels')??true;
+const isNight=()=>S.mood==='nacht';
+function layout(){const R=RD(),st=$('#stage'),W=st.clientWidth,H=st.clientHeight,s=Math.max(W/R.w,H/R.h),ww=R.w*s,wh=R.h*s,w=$('#world');
+  w.style.width=ww+'px';w.style.height=wh+'px';const ox=-(ww-W)*pan.x,oy=-(wh-H)*pan.y;
+  w.dataset.ox=ox;w.dataset.oy=oy;applyT()}
+function applyT(){const w=$('#world'),ox=+w.dataset.ox||0,oy=+w.dataset.oy||0;if(zoomT){w.style.transformOrigin=zoomT.ox+'px '+zoomT.oy+'px';w.style.transform=`translate(${ox}px,${oy}px) scale(${zoomT.s})`}else{w.style.transformOrigin='50% 50%';w.style.transform=`translate(${ox+par.x}px,${oy+par.y}px) scale(1.04)`}}
+function buildRoom(){const R=RD(),pct=(v,t)=>(v/t*100)+'%';
+  const bg=$('#bg');const src=R.img||(isNight()?R.night:R.day);if(!bg.src.endsWith(src))bg.src=src;
+  $('#tint').style.opacity=isNight()&&R.tint?1:0;
+  $('#glows').innerHTML=R.glows.map(([x,y,r],i)=>`<i style="left:${pct(x,R.w)};top:${pct(y,R.h)};width:${r*2/R.w*100}%;animation-delay:${-i*.37}s"></i>`).join('');
+  $('#glows').style.opacity=isNight()?1:0;
+  $('#spots').innerHTML=R.spots.map((sp,i)=>sp.r.map(([x,y,w,h])=>`<button class="spot" data-st="${sp.st}" data-i="${i}" style="left:${pct(x,R.w)};top:${pct(y,R.h)};width:${pct(w,R.w)};height:${pct(h,R.h)}" aria-label="${sp.lab}"></button>`).join('')+`<button class="tag" data-st="${sp.st}" data-i="${i}" style="left:${pct(sp.l[0],R.w)};top:${pct(sp.l[1],R.h)}" tabindex="-1"><span class="spark"></span><span class="tl">${sp.lab}</span></button>`).join('');
+  document.body.classList.toggle('nolabels',!showLabels);document.body.classList.toggle('night',isNight());
+  $('#rooms').innerHTML=Object.entries(ROOMS).map(([k,r])=>`<button data-room="${k}" class="${k===room?'on':''}">${r.n}</button>`).join('');
+  $('#chips').innerHTML=R.spots.filter(s=>s.st!=='daynight').map(s=>`<button data-open="${s.st}" data-i="${R.spots.indexOf(s)}">${s.st==='wetter'?'Wetter: '+MOODS[S.mood].n:ST[s.st].n}<small>${s.lab.split(' · ')[0]}</small></button>`).join('');
+  $('#dn').textContent=isNight()?'☀ Make it day':'☾ Make it night';$('#lb').textContent=showLabels?'Hide labels':'Show labels';
+  layout();dustReset()}
+function goRoom(k){if(k===room)return;room=k;LS.set('zs-room',k);pan={x:.5,y:.5};buildRoom()}
+function toggleNight(){setMood(isNight()?'morgen':'nacht');save();buildRoom()}
+function zoomTo(x,y,cb){const R=RD(),w=$('#world'),s=w.clientWidth/R.w;zoomT={ox:x*s,oy:y*s,s:2.6};w.classList.add('zooming');applyT();setTimeout(cb,650)}
+function unzoom(){if(!zoomT)return;zoomT=null;applyT();setTimeout(()=>$('#world').classList.remove('zooming'),700)}
+function hit(st,i){if(st==='daynight')return toggleNight();
+  if(st==='wetter'){const order=['morgen','herbst','regen','nacht'];setMood(order[(order.indexOf(S.mood)+1)%4]);save();buildRoom();return}
+  const sp=RD().spots[+i];
+  if(st==='tagebuch'&&room==='bib'){zoomTo(sp.zoom[0],sp.zoom[1],()=>{$('#closeup').classList.add('on');setTimeout(()=>open(st),550)});return}
+  if(st==='mindmap'){zoomTo(sp.zoom[0],sp.zoom[1],()=>openEye());return}
+  if(sp&&sp.zoom){zoomTo(sp.zoom[0],sp.zoom[1],()=>open(st));return}open(st)}
+/* stage interaction: drag to look around, gentle parallax */
+{let drag=null,moved=false;const st=$('#stage');
+ st.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};moved=false});
+ st.addEventListener('pointermove',e=>{const r=st.getBoundingClientRect();
+  if(drag&&!zoomT){const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(Math.abs(dx)+Math.abs(dy)>6)moved=true;if(moved){const w=$('#world'),ex=w.clientWidth-r.width,ey=w.clientHeight-r.height;pan.x=Math.min(1,Math.max(0,drag.px-(ex>0?dx/ex:0)));pan.y=Math.min(1,Math.max(0,drag.py-(ey>0?dy/ey:0)));layout()}}
+  else if(e.pointerType==='mouse'&&!zoomT&&!matchMedia('(prefers-reduced-motion: reduce)').matches){par.x=-((e.clientX-r.left)/r.width-.5)*18;par.y=-((e.clientY-r.top)/r.height-.5)*10;applyT()}});
+ addEventListener('pointerup',()=>{drag=null});
+ st.addEventListener('click',e=>{if(moved){moved=false;return}const b=e.target.closest('[data-st]');if(b)hit(b.dataset.st,b.dataset.i)},true);
+ addEventListener('resize',layout);}
+/* floating dust in the sunbeams */
+let dust=[],dctx=null;
+function dustReset(){const c=$('#fx'),R=RD();c.width=R.w/2;c.height=R.h/2;dctx=c.getContext('2d');dust=[];const fx=R.fx||(isNight()?'none':'dust');if(fx==='none')return;
+  const per={dust:28,pollen:40,leaves:22,rain:220,fireflies:46}[fx]||28;
+  R.dust.forEach(([x0,y0,x1,y1])=>{for(let i=0;i<per;i++){const p={k:fx,x:x0+Math.random()*(x1-x0),y:y0+Math.random()*(y1-y0),r:.6+Math.random()*1.6,vx:(Math.random()-.5)*.15,vy:-.05-Math.random()*.18,a:Math.random()*6,b:[x0,y0,x1,y1]};
+    if(fx==='rain'){p.vx=-1.2;p.vy=14+Math.random()*8;p.r=.8}
+    if(fx==='leaves'){p.vx=.6+Math.random()*.8;p.vy=.5+Math.random()*.7;p.r=3+Math.random()*3}
+    if(fx==='fireflies'){p.vx=(Math.random()-.5)*.6;p.vy=(Math.random()-.5)*.4;p.r=1.4+Math.random()*1.2}
+    dust.push(p)}})}
+function dustTick(){if(dctx&&!document.hidden){const c=dctx.canvas;dctx.clearRect(0,0,c.width,c.height);for(const p of dust){p.a+=.02;
+  if(p.k==='rain'){p.x+=p.vx;p.y+=p.vy;if(p.y>p.b[3]){p.y=p.b[1]-20;p.x=p.b[0]+Math.random()*(p.b[2]-p.b[0])}dctx.globalAlpha=.35;dctx.strokeStyle='#dfe8f2';dctx.lineWidth=.8;dctx.beginPath();dctx.moveTo(p.x/2,p.y/2);dctx.lineTo((p.x+p.vx*1.6)/2,(p.y+p.vy*1.6)/2);dctx.stroke();continue}
+  if(p.k==='leaves'){p.x+=p.vx+Math.sin(p.a*2)*.6;p.y+=p.vy;if(p.y>p.b[3]||p.x>p.b[2]){p.y=p.b[1];p.x=p.b[0]+Math.random()*(p.b[2]-p.b[0])*.7}dctx.globalAlpha=.8;dctx.fillStyle=['#d9822b','#b5541f','#e8b04a'][Math.floor(p.r)%3];dctx.save();dctx.translate(p.x/2,p.y/2);dctx.rotate(p.a*3);dctx.beginPath();dctx.ellipse(0,0,p.r,p.r*.5,0,0,7);dctx.fill();dctx.restore();continue}
+  if(p.k==='fireflies'){p.vx+=(Math.random()-.5)*.05;p.vy+=(Math.random()-.5)*.05;p.vx*=.98;p.vy*=.98;p.x+=p.vx;p.y+=p.vy;if(p.x<p.b[0]||p.x>p.b[2])p.vx*=-1;if(p.y<p.b[1]||p.y>p.b[3])p.vy*=-1;const g=Math.max(0,Math.sin(p.a*1.6));dctx.globalAlpha=g;dctx.fillStyle='#ffe98a';dctx.shadowColor='#ffd84a';dctx.shadowBlur=8;dctx.beginPath();dctx.arc(p.x/2,p.y/2,p.r,0,7);dctx.fill();dctx.shadowBlur=0;continue}
+  p.x+=p.vx;p.y+=p.vy;if(p.y<p.b[1]){p.y=p.b[3];p.x=p.b[0]+Math.random()*(p.b[2]-p.b[0])}dctx.globalAlpha=.25+.35*Math.abs(Math.sin(p.a));dctx.fillStyle=p.k==='pollen'?'#fff6c8':'#fff3d6';dctx.beginPath();dctx.arc(p.x/2,p.y/2,p.r,0,7);dctx.fill()}}requestAnimationFrame(dustTick)}
+if(!matchMedia('(prefers-reduced-motion: reduce)').matches)requestAnimationFrame(dustTick);
+
+/* ---------- telescope: notes as constellations ---------- */
+const MM=[['satzbau','Satzbau'],['faelle','Fälle'],['praep','Präpositionen'],['verben','Verben'],['konn','Konnektoren'],['vocab','Wortschatz'],['fragen','Fragen'],['pin','Pinnwand']];
+function mmKids(k){if(k==='vocab')return vTopics().map(t=>({t:t+' ('+S.vocab.filter(v=>(v.topic||'Andere')===t).length+')',act:'eyevocab',id:t,k}));if(k==='pin')return S.pins.filter(p=>p.id!=='fragen').map(p=>({t:p.title,act:'eyepin',id:p.id,k}));return (S.notes[k==='fragen'?'pin:fragen':k]||[]).map(n=>({t:(n.t||'Untitled').split(' · ')[0],act:'eyenote',id:n.id,k}))}
+const cut=(t,n)=>t.length>n?t.slice(0,n-1)+'…':t;
+function hashf(s){let h=2166136261;for(const c of s)h=Math.imul(h^c.charCodeAt(0),16777619);return ()=>{h=Math.imul(h^h>>>15,2246822507);h=Math.imul(h^h>>>13,3266489909);return ((h^=h>>>16)>>>0)/4294967296}}
+let EYE={sel:null,vb:[0,0,1000,1000],anim:null};
+function skyStars(){const r=hashf('sky');let s='';for(let i=0;i<420;i++){const a=r()*Math.PI*2,d=Math.sqrt(r())*500,x=500+Math.cos(a)*d,y=500+Math.sin(a)*d,z=r();s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(z*1.4+.3).toFixed(2)}" fill="#fff" opacity="${(.25+z*.6).toFixed(2)}"${i%9===0?` class="tw" style="animation-delay:${(-r()*4).toFixed(2)}s"`:''}/>`}return s}
+function constellations(){return MM.map(([k,t],i)=>{const a=(-90+i*360/MM.length)*Math.PI/180,cx=500+Math.cos(a)*285,cy=500+Math.sin(a)*285,kids=mmKids(k),r=hashf(k),pts=[];
+  kids.forEach((o,j)=>{let best=null;for(let tries=0;tries<30;tries++){const aa=r()*Math.PI*2,dd=18+Math.sqrt(r())*88,x=cx+Math.cos(aa)*dd,y=cy+Math.sin(aa)*dd*.85;const md=Math.min(999,...pts.map(p=>Math.hypot(p.x-x,p.y-y)));if(!best||md>best.md)best={x,y,md};if(md>26)break}pts.push({x:best.x,y:best.y,o})});
+  const order=[...pts].sort((p,q)=>Math.atan2(p.y-cy,p.x-cx)-Math.atan2(q.y-cy,q.x-cx));return {k,t,cx,cy,pts,order}})}
+function eyeSVG(){const C=constellations(),z=EYE.sel;
+  let s=`<defs><radialGradient id="neb1"><stop offset="0" stop-color="#5b7bd6" stop-opacity=".35"/><stop offset="1" stop-color="#5b7bd6" stop-opacity="0"/></radialGradient><radialGradient id="neb2"><stop offset="0" stop-color="#9d6bd6" stop-opacity=".25"/><stop offset="1" stop-color="#9d6bd6" stop-opacity="0"/></radialGradient><filter id="glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="3.2"/></filter><clipPath id="lens"><circle cx="500" cy="500" r="500"/></clipPath></defs><g clip-path="url(#lens)"><rect width="1000" height="1000" fill="#060b1c"/><circle cx="320" cy="380" r="330" fill="url(#neb1)"/><circle cx="700" cy="650" r="300" fill="url(#neb2)"/>${skyStars()}`;
+  C.forEach(c=>{const on=z===c.k,dim=z&&!on;s+=`<g class="con${on?' on':''}" data-act="eyesel" data-k="${c.k}" opacity="${dim?.3:1}"><circle cx="${c.cx}" cy="${c.cy}" r="118" fill="transparent"/>`;
+    if(c.order.length>1)s+=`<polyline points="${c.order.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')}" fill="none" stroke="#9fd0ff" stroke-width="${on?1:1.4}" opacity=".55"/>`;
+    c.pts.forEach(p=>{s+=`<g class="star" ${on?`data-act="${p.o.act}" data-k="${p.o.k}" data-id="${esc(p.o.id)}"`:''}><circle cx="${p.x}" cy="${p.y}" r="${on?4:6}" fill="#bfe2ff" filter="url(#glow)"/><circle cx="${p.x}" cy="${p.y}" r="${on?1.8:2.6}" fill="#fff"/>${on?`<text x="${p.x+6}" y="${p.y+2.4}" font-size="7.5" fill="#e8f3ff">${esc(cut(p.o.t,26))}</text><circle cx="${p.x}" cy="${p.y}" r="9" fill="transparent"/>`:''}</g>`});
+    if(!c.pts.length)s+=`<circle cx="${c.cx}" cy="${c.cy}" r="3" fill="#bfe2ff" opacity=".6"/>`;
+    if(!dim)s+=`<text x="${c.cx}" y="${c.cy+(on?-104:128)}" text-anchor="middle" class="cname" font-size="${on?13:26}">${c.t}</text>`;if(!on&&!dim)s+=`<text x="${c.cx}" y="${c.cy+150}" text-anchor="middle" font-size="15" fill="#9fb6d8">${c.pts.length} ${c.pts.length===1?'Stern':'Sterne'}</text>`;s+='</g>'});
+  return s+'</g>'}
+function eyeTarget(){if(!EYE.sel)return [0,0,1000,1000];const c=constellations().find(x=>x.k===EYE.sel);return [c.cx-150,c.cy-150,300,300]}
+function animVB(to){const from=[...EYE.vb],t0=performance.now(),svg=$('#eyesvg');cancelAnimationFrame(EYE.anim);const step=t=>{const k=Math.min(1,(t-t0)/600),e=k<.5?2*k*k:1-(-2*k+2)**2/2;EYE.vb=from.map((v,i)=>v+(to[i]-v)*e);svg.setAttribute('viewBox',EYE.vb.join(' '));if(k<1)EYE.anim=requestAnimationFrame(step)};EYE.anim=requestAnimationFrame(step)}
+function renderEye(){$('#eyesvg').innerHTML=eyeSVG();const z=EYE.sel;$('#eyeback').hidden=!z;
+  $('#eyelist').innerHTML=z?`<h3>${MM.find(m=>m[0]===z)[1]}</h3><div class="mmlist">${mmKids(z).map(o=>`<button data-act="${o.act}" data-k="${o.k}" data-id="${esc(o.id)}">${esc(o.t)}</button>`).join('')||'<span>No notes here yet.</span>'}</div><button class="btn main" data-act="eyeopen" data-k="${z}">Open ${MM.find(m=>m[0]===z)[1]}</button>`:'<p>Tap a constellation to look closer. Every star is one of your notes.</p>'}
+function openEye(){EYE.sel=null;EYE.vb=[0,0,1000,1000];$('#eyesvg').setAttribute('viewBox','0 0 1000 1000');renderEye();$('#eye').hidden=false;$('#eyeclose').focus()}
+function closeEye(keepZoom){$('#eye').hidden=true;if(!keepZoom)unzoom()}
+$('#eye').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,d=b.dataset;
+  if(a==='eyesel'){if(EYE.sel===d.k)return;EYE.sel=d.k;renderEye();animVB(eyeTarget());return}
+  if(a==='eyeback'){EYE.sel=null;renderEye();animVB([0,0,1000,1000]);return}
+  if(a==='eyeclose'){closeEye();return}
+  closeEye();unzoom();
+  if(a==='eyeopen'){open(d.k);return}
+  if(a==='eyevocab'){open('vocab');P.vt=d.id;render();return}
+  if(a==='eyepin'){open('pin');pinOpen=d.id;render();return}
+  if(a==='eyenote'){const id=d.id;open(d.k);tab='notes';render();const el2=document.querySelector(`[data-nid="${id}"]`);if(el2){el2.scrollIntoView({block:'center'});el2.classList.add('flash')}}});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#eye').hidden)closeEye()});
+
+/* ---------- audio (generated, no files) ---------- */
+let AC=null,master=null,loop=null,noiseSrc=null,playing=null,vol=LS.get('zs-vol')??.6;
+const hz=m=>440*2**((m-69)/12);
+function stopMusic(){clearInterval(loop);loop=null;try{noiseSrc&&noiseSrc.stop()}catch(e){}noiseSrc=null;if(master){const m=master;m.gain.setTargetAtTime(0,AC.currentTime,.3);setTimeout(()=>m.disconnect(),1200)}master=null;playing=null;document.body.classList.remove('playing')}
+function playMusic(k){stopMusic();try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();AC.resume&&AC.resume();const M=MOODS[k];master=AC.createGain();master.gain.value=vol;master.connect(AC.destination);
+  const lp=AC.createBiquadFilter();lp.type='lowpass';lp.frequency.value=M.lp;lp.connect(master);let i=0;const out=master;
+  const chord=()=>{if(master!==out)return;const t=AC.currentTime,c=M.ch[i++%M.ch.length];[c[0]-12,...c].forEach((m,j)=>{const o=AC.createOscillator(),g=AC.createGain();o.type=j?'triangle':'sine';o.frequency.value=hz(m);o.detune.value=(Math.random()-.5)*8;g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(j?.035:.06,t+1.3);g.gain.linearRampToValueAtTime(0,t+M.sec+.4);o.connect(g);g.connect(lp);o.start(t);o.stop(t+M.sec+.6)});
+    if(Math.random()<.7){const o=AC.createOscillator(),g=AC.createGain(),t2=t+M.sec*.5;o.type='sine';o.frequency.value=hz(pick(c)+12);g.gain.setValueAtTime(0,t2);g.gain.linearRampToValueAtTime(.03,t2+.05);g.gain.exponentialRampToValueAtTime(.0005,t2+1.8);o.connect(g);g.connect(lp);o.start(t2);o.stop(t2+2)}};
+  chord();loop=setInterval(chord,M.sec*1000);
+  const len=AC.sampleRate*2,buf=AC.createBuffer(1,len,AC.sampleRate),d=buf.getChannelData(0);
+  if(M.rain){let last=0;for(let n=0;n<len;n++){last=(last+.02*(Math.random()*2-1))/1.02;d[n]=last*3.2+(Math.random()*2-1)*.04}}else{for(let n=0;n<len;n++)d[n]=Math.random()<.0006?(Math.random()*2-1)*.6:(Math.random()*2-1)*.006}
+  noiseSrc=AC.createBufferSource();noiseSrc.buffer=buf;noiseSrc.loop=true;const ng=AC.createGain();ng.gain.value=M.rain?.5:.35;const nf=AC.createBiquadFilter();nf.type=M.rain?'lowpass':'bandpass';nf.frequency.value=M.rain?1800:2500;noiseSrc.connect(nf);nf.connect(ng);ng.connect(master);noiseSrc.start();
+  playing=k;document.body.classList.add('playing')}catch(e){playing=null}}
+
+/* ---------- panel ---------- */
+let cur=null,tab='notes',editing=null,P={},JE=null,pinOpen=null,lastFocus=null;
+function open(k){lastFocus=document.activeElement;cur=k;tab=ST[k].game?'notes':'main';editing=null;P={};pinOpen=null;if(k==='tagebuch')JE=JE||newJE();$('#ov').hidden=false;render();$('#pclose').focus()}
+function close(){$('#ov').hidden=true;cur=null;$('#closeup').classList.remove('on');unzoom();lastFocus&&lastFocus.focus&&lastFocus.focus()}
+function newJE(){const d=LS.get('zs-draft');return d&&d.text?d:{id:null,date:today(),prompt:pick(PROMPTS),text:''}}
+function render(){const s=ST[cur];$('#part').innerHTML=ART_IMG[cur]?`<img src="${ART_IMG[cur]}" alt="">`:(cur==='vocab'?'<div class="potion" aria-hidden="true"></div>':'');$('#pobj').textContent=s.obj;$('#ptitle').textContent=s.n;$('#pen').textContent=s.en;
+  $('#ptabs').innerHTML=s.game?(s.tabs||[['notes','Notes'],['ueben','Practice']]).map(([k,t])=>`<button data-tab="${k}" class="${tab===k?'on':''}">${t}</button>`).join(''):'';
+  const f={satzbau:satzbauV,faelle:faelleV,praep:praepV,verben:verbenV,konn:konnV,tagebuch:journalV,notizen:notizenV,vocab:vocabV,fragen:()=>notesV('pin:fragen')+'<p class="hint">More ways to ask and suggest are on the Pergament under Bitten &amp; Vorschläge.</p>',pin:pinV,platten:platV,pflanze:plantV}[cur];$('#pbody').innerHTML=f()}
+
+function notesV(key){const arr=S.notes[key]||(S.notes[key]=[]);return arr.map(n=>editing===n.id?`<article class="note"><input type="text" id="et" value="${esc(n.t)}" placeholder="Title" aria-label="Title"><p class="hint">**bold** · ==highlight== · start a line with "- " for a list · "|a|b" for a table</p><textarea id="eb" rows="7" lang="de" aria-label="Note">${esc(n.b)}</textarea><div class="na"><button class="btn danger" data-act="delnote" data-id="${n.id}">Delete</button><button class="btn" data-act="cancel" data-id="${n.id}">Cancel</button><button class="btn main" data-act="savenote" data-id="${n.id}" data-key="${key}">Save</button></div></article>`:`<article class="note" data-nid="${n.id}"><h3>${esc(n.t)||'<i>Untitled</i>'}</h3>${md(n.b)}<div class="na"><button class="btn sm" data-act="edit" data-id="${n.id}">Edit</button></div></article>`).join('')+`<button class="btn main" data-act="addnote" data-key="${key}">+ Add a note</button>`}
+function groupsV(list,G){return `<div class="groups">${Object.entries(G).map(([g,[t,sub]])=>`<div class="grp c-${g}"><h3>${t}</h3><p>${sub}</p>${S[list][g].map((w,i)=>`<span class="chip">${esc(w)}<button data-act="rmchip" data-list="${list}" data-g="${g}" data-i="${i}" aria-label="Remove ${esc(w)}">×</button></span>`).join('')}<div class="row"><input type="text" data-addin="${list}-${g}" placeholder="Add a word…" aria-label="${t}: add a word"><button class="btn sm" data-act="addchip" data-list="${list}" data-g="${g}">+</button></div></div>`).join('')}</div>`}
+
+
+
+/* Schnellnotizen (lake house) */
+const MOVE=[['satzbau','Satzbau'],['faelle','Fälle'],['praep','Präpositionen'],['verben','Verben'],['konn','Konnektoren'],['pin:fragen','Fragen & Antworten'],['vocab','Wortschatz (as a word)']];
+function notizenV(){const opts=MOVE.concat(S.pins.filter(p=>p.id!=='fragen').map(p=>['pin:'+p.id,'Pergament: '+p.title])).map(([k,t])=>`<option value="${esc(k)}">${esc(t)}</option>`).join('');
+  return `<div class="note"><h3>Write it down</h3><textarea id="qtext" lang="de" spellcheck="true" rows="5" placeholder="Something from today's lesson, a new word, a question for your teacher…"></textarea><div class="na"><button class="btn main" data-act="qadd">Save note</button></div><p class="hint">No need to sort it now. When you have energy, move each note to the right place in the school.</p></div>
+  <h3 style="margin:18px 0 10px">Unsorted notes (${S.inbox.length})</h3>${S.inbox.length?S.inbox.map(n=>`<article class="entry"><p class="pr">${new Date(n.created).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p><p>${esc(n.text)}</p><div class="row" style="justify-content:flex-end"><select id="mv-${n.id}" aria-label="Move to" style="width:auto;flex:1 1 200px;max-width:320px">${opts}</select><button class="btn sm main" data-act="qmove" data-id="${n.id}">Move</button><button class="btn sm danger" data-act="qdel" data-id="${n.id}">Delete</button></div></article>`).join(''):'<p class="hint">All sorted. Enjoy the lake.</p>'}`}
+function moveNote(id,to){const n=S.inbox.find(x=>x.id===id);if(!n)return;
+  if(to==='vocab'){const m=n.text.split(/\s(?:=|-|–|:)\s/);S.vocab.unshift({id:'v'+Date.now(),de:(m[0]||n.text).trim(),en:(m[1]||'').trim(),topic:'Neu'})}
+  else{const lines=n.text.trim().split('\n'),t=lines[0].slice(0,70),b=lines.length>1?lines.slice(1).join('\n'):(lines[0].length>70?n.text:'');(S.notes[to]||(S.notes[to]=[])).push({id:rid(),t,b});S.leaves++}
+  S.inbox=S.inbox.filter(x=>x.id!==id);save()}
+
+/* Satzbau */
+function satzbauV(){if(tab==='notes')return notesV('satzbau');if(!P.parts)sbNew();
+  const done=P.res!=null;return `<div class="game"><p class="hint">Tap the pieces in the right order to build the sentence.</p><div class="tiles ans" aria-label="Your sentence">${P.ans.map((t,k)=>`<button class="tile" data-act="untile" data-k="${k}" ${done?'disabled':''}>${esc(t.w)}</button>`).join('')||'<span class="hint">…</span>'}</div><div class="tiles">${P.pool.map((t,k)=>`<button class="tile" data-act="tile" data-k="${k}">${esc(t.w)}</button>`).join('')}</div>
+  <p class="fb ${P.res===true?'ok':P.res===false?'bad':''}" aria-live="polite">${P.res===true?'Correct! Super.':P.res===false?'Almost. The right order is: '+esc(P.parts.join(' ')):''}</p>
+  <div class="row" style="justify-content:center">${done?'<button class="btn main" data-act="sbnew">Next sentence</button>':`<button class="btn" data-act="sbreset">Start over</button><button class="btn main" data-act="sbcheck" ${P.pool.length?'disabled':''}>Check</button>`}</div></div>
+  <details><summary><b>Your practice sentences (${S.sentences.length})</b></summary><p class="hint">Split the sentence into pieces with | , for example: Ich | gehe | heute | ins Kino.</p>${S.sentences.map((s,i)=>`<div class="row" style="margin-bottom:6px"><span style="flex:1">${esc(s)}</span><button class="btn sm danger" data-act="rmsent" data-i="${i}">×</button></div>`).join('')}<div class="row"><input type="text" id="newsent" placeholder="New sentence, pieces split with |" lang="de"><button class="btn main" data-act="addsent">Add</button></div></details>`}
+function sbNew(){const s=S.sentences.length?pick(S.sentences):'Ich | lerne | Deutsch.';P.parts=s.split('|').map(x=>x.trim()).filter(Boolean);let p;do{p=shuffle(P.parts.map((w,i)=>({w,i})))}while(P.parts.length>2&&p.map(t=>t.w).join()===P.parts.join());P.pool=p;P.ans=[];P.res=null}
+
+/* Fälle */
+const CASES=['Nom','Akk','Dat','Gen'],GEN=['M','F','N','Pl'];
+const ART={def:[['der','die','das','die'],['den','die','das','die'],['dem','der','dem','den'],['des','der','des','der']],ind:[['ein','eine','ein','–'],['einen','eine','ein','–'],['einem','einer','einem','–'],['eines','einer','eines','–']]};
+function fNew(kind){P.kind=kind||P.kind||'def';if(P.kind==='adj'){P.hid=[];P.q=shuffle(ADJ);P.cur=P.q.pop();P.res=null;return}const A=ART[P.kind],keys=[];A.forEach((r,i)=>r.forEach((v,j)=>v!=='–'&&keys.push(i+'-'+j)));P.hid=shuffle(keys).slice(0,7);P.val={};P.res=null}
+function faelleV(){if(tab==='notes')return notesV('faelle');if(!P.hid)fNew();const seg=`<div class="seg" style="justify-content:center"><button data-act="fkind" data-v="def" class="${P.kind==='def'?'on':''}">der · die · das</button><button data-act="fkind" data-v="ind" class="${P.kind==='ind'?'on':''}">ein · eine</button><button data-act="fkind" data-v="adj" class="${P.kind==='adj'?'on':''}">Adjective endings</button></div>`;
+  if(P.kind==='adj'){const [pre,post,end,hint]=P.cur;return `<div class="game">${seg}<p class="hint">Which ending is missing? <b>${hint}</b></p><div class="big" style="font-size:clamp(24px,4.5vw,34px)">${esc(pre)}<u>${P.res==null?'&nbsp;?&nbsp;':esc(end)}</u> ${esc(post)}</div><div class="jars" style="grid-template-columns:repeat(5,minmax(0,1fr))">${['e','en','er','es','em'].map(e=>`<button data-act="adjans" data-v="${e}" style="background:var(--sage)" ${P.res!=null?'disabled':''}>-${e}</button>`).join('')}</div><p class="fb ${P.res===true?'ok':P.res===false?'bad':''}" aria-live="polite">${P.res===true?'Richtig!':P.res===false?'The right ending is: -'+end:''}</p>${P.res===false?'<button class="btn main" data-act="adjnext">Next</button>':''}</div>`+scoreLine()+'<p class="hint">The tables are under Notes: after der/die/das, after ein/kein/mein, and without an article.</p>'}
+  const A=ART[P.kind];
+  return `<div class="game">${seg}<p class="hint">Fill in the missing articles on the menu.</p>
+  <div class="scroll"><table class="menu"><tr><th></th>${GEN.map(g=>`<th>${g}</th>`).join('')}</tr>${CASES.map((c,r)=>`<tr><th>${c}</th>${GEN.map((g,ci)=>{const k=r+'-'+ci,v=A[r][ci];if(!P.hid.includes(k))return `<td>${v}</td>`;const st=P.res&&P.res[k];return `<td><input class="cell ${st===true?'ok':st===false?'bad':''}" data-k="${k}" value="${esc(P.val[k]||'')}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="${c} ${g}">${st===false?`<small>${v}</small>`:''}</td>`}).join('')}</tr>`).join('')}</table></div>
+  <p class="fb ${P.res?(P.score===P.hid.length?'ok':'bad'):''}" aria-live="polite">${P.res?`${P.score} of ${P.hid.length} correct`+(P.score===P.hid.length?' – perfect!':''):''}</p>
+  <div class="row" style="justify-content:center"><button class="btn" data-act="fnew">New round</button>${P.res?'':'<button class="btn main" data-act="fcheck">Check</button>'}</div></div><p class="hint">Dative plural nouns add -n; genitive M/N nouns add -s/-es.</p>`}
+
+/* Präpositionen */
+const allOf=list=>Object.entries(S[list]).flatMap(([g,a])=>a.map(w=>({w,g})));
+function qNext(list){if(!P.q||!P.q.length)P.q=shuffle(allOf(list));P.cur=P.q.pop();P.res=null}
+function cNext(){P.cur=pick(S.contr);P.res=null;const others=shuffle([...new Set(S.contr.map(c=>c[1]).filter(x=>x!==P.cur[1]))]).slice(0,3);P.opts=shuffle([P.cur[1],...others])}
+function praepV(){if(tab==='notes')return groupsV('preps',PG)+notesV('praep');P.mode=P.mode||'sort';
+  let h=`<div class="seg"><button data-act="pmode" data-v="sort" class="${P.mode==='sort'?'on':''}">Sort into the jars</button><button data-act="pmode" data-v="contr" class="${P.mode==='contr'?'on':''}">Contractions</button></div>`;
+  if(P.mode==='sort'){if(!P.cur)qNext('preps');if(!P.cur)return h+'<p>No prepositions yet.</p>';
+    h+=`<div class="game"><p class="hint">Which jar does it belong in?</p><div class="big">${esc(P.cur.w)}</div><div class="jars">${Object.entries(PG).map(([g,[t,sub,c]])=>`<button data-act="jar" data-g="${g}" style="background:${c}" ${P.res?'disabled':''}>${t}<br><small style="font-weight:400">${sub}</small></button>`).join('')}</div>${fbQ(PG)}</div>`}
+  else{if(!P.cur||!P.opts)cNext();h+=`<div class="game"><p class="hint">What is the short form?</p><div class="big">${esc(P.cur[0])}</div><div class="jars">${P.opts.map(o=>`<button data-act="copt" data-v="${esc(o)}" style="background:var(--sage)" ${P.res?'disabled':''}>${esc(o)}</button>`).join('')}</div><p class="fb ${P.res===true?'ok':P.res===false?'bad':''}" aria-live="polite">${P.res===true?'Correct!':P.res===false?`${esc(P.cur[0])} → ${esc(P.cur[1])}`:''}</p>${P.res===false?'<button class="btn main" data-act="cnext">Next</button>':''}</div>`}
+  return h+scoreLine()}
+const scoreLine=()=>P.total?`<p class="hint" style="text-align:center">This session: ${P.score} of ${P.total} correct</p>`:'';
+function fbQ(G){return `<p class="fb ${P.res===true?'ok':P.res===false?'bad':''}" aria-live="polite">${P.res===true?'Correct!':P.res===false?`“${esc(P.cur.w)}” belongs to: ${G[P.cur.g][0]} (${G[P.cur.g][1]})`:''}</p>${P.res===false?'<button class="btn main" data-act="qnext">Next</button>':''}`}
+
+/* Konnektoren */
+function konnV(){if(tab==='notes')return groupsV('conn',CG)+notesV('konn');if(!P.cur)qNext('conn');if(!P.cur)return '<p>No connectors yet.</p>';
+  const ex={koord:'Ich bin müde, aber ich lerne noch.',sub:'Ich bleibe zu Hause, weil ich müde bin.',adv:'Es regnet, deshalb nehme ich den Bus.'};
+  return `<div class="game"><p class="hint">What happens to the verb?</p><div class="big">${esc(P.cur.w)}</div><div class="jars">${Object.entries(CG).map(([g,[t,sub,c]])=>`<button data-act="jar" data-g="${g}" style="background:${c};color:${g==='koord'?'#3a2418':'#fff'}" ${P.res?'disabled':''}>${sub}</button>`).join('')}</div>${fbQ(CG)}${P.res===false?`<p class="hint">Example: ${ex[P.cur.g]}</p>`:''}</div>`+scoreLine()}
+
+/* Verben */
+function vNext(){if(!P.q||!P.q.length)P.q=shuffle(S.verbs.map((_,i)=>i));P.cur=P.q.shift();P.flip=false}
+function verbenV(){if(tab==='notes')return notesV('verben');if(P.cur==null||!S.verbs[P.cur])vNext();const v=S.verbs[P.cur];
+  const card=!v?'<p>No verbs yet. Add one below.</p>':`<button class="card" data-act="flip" aria-label="Flip card">${P.flip?`<div class="big" style="margin:0 0 6px">${esc(v.inf)}</div><dl><dt>Meaning</dt><dd>${esc(v.en)}</dd><dt>Präteritum (simple past)</dt><dd>er/sie ${esc(v.prat)}</dd><dt>Perfekt (spoken past)</dt><dd>er/sie ${v.aux==='sein'?'ist':'hat'} ${esc(v.p2)}</dd></dl>`:`<div class="big" style="margin:0">${esc(v.inf)}</div><span class="hint">Tap to flip · do you know the Präteritum and Perfekt?</span>`}</button>`;
+  return `<div class="game">${card}${v&&P.flip?'<div class="row" style="justify-content:center;margin-top:14px"><button class="btn" data-act="vagain">Not yet</button><button class="btn main" data-act="vknew">I knew it!</button></div>':''}</div>`+scoreLine()+
+  `<details><summary><b>Your verb cards (${S.verbs.length})</b></summary><div class="scroll"><table class="vt"><tr><th>Verb</th><th>Meaning</th><th>Präteritum</th><th>Perfekt</th><th></th></tr>${S.verbs.map((v,i)=>`<tr><td><b>${esc(v.inf)}</b></td><td>${esc(v.en)}</td><td>${esc(v.prat)}</td><td>${v.aux==='sein'?'ist':'hat'} ${esc(v.p2)}</td><td><button class="btn sm danger" data-act="rmverb" data-i="${i}" aria-label="Delete ${esc(v.inf)}">×</button></td></tr>`).join('')}</table></div>
+  <p class="hint" style="margin-top:12px">New card</p><div class="groups" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))"><input type="text" id="vinf" placeholder="Infinitive (e.g. backen)" lang="de"><input type="text" id="ven" placeholder="Meaning (bake)"><input type="text" id="vprat" placeholder="Präteritum, er/sie form (backte)" lang="de"><input type="text" id="vp2" placeholder="Partizip II (gebacken)" lang="de"><select id="vaux" aria-label="Helper verb"><option value="haben">hat</option><option value="sein">ist</option></select><button class="btn main" data-act="addverb">Add</button></div></details>`}
+
+/* Tagebuch */
+function connFound(t){const words=new Set((t.toLowerCase().match(/[a-zäöüß]+/g)||[]));const out=[];for(const [g,a] of Object.entries(S.conn))for(const c of a){const base=c.replace(/\(.*?\)/g,'').trim().split(/[\s…]+/)[0].toLowerCase();if(base&&words.has(base)&&!out.some(o=>o.w===base))out.push({w:base,g})}return out}
+function jStats(t){const w=(t.match(/\S+/g)||[]).length,c=connFound(t);return `<span><b>${w}</b> words</span>${c.length?'<span>Connectors used:</span>'+c.map(o=>`<span class="chip c-${o.g}" style="padding-right:10px">${esc(o.w)}</span>`).join(''):'<span>Tip: join sentences with weil, aber, deshalb …</span>'}`}
+function journalV(){const e=JE,list=[...J].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.created||0)-(a.created||0));
+  return `<div class="row"><input type="date" id="jdate" value="${esc(e.date)}" aria-label="Date" style="max-width:200px"><span class="hint" style="margin:0">${e.id?'Editing an entry':'New entry'}</span></div>
+  ${e.prompt?`<div class="prompt"><b>${esc(e.prompt[0])}</b><br><span class="hint">${esc(e.prompt[1])}</span></div>`:'<div class="prompt"><span class="hint">Free writing, no question.</span></div>'}
+  <div class="row" style="margin-bottom:8px"><button class="btn sm" data-act="jprompt">Different question</button><button class="btn sm" data-act="jnoprompt">No question</button></div>
+  <textarea id="jtext" lang="de" spellcheck="true" rows="8" placeholder="Heute habe ich …" aria-label="Journal entry">${esc(e.text)}</textarea>
+  <div class="jstats" id="jstats">${jStats(e.text)}</div>
+  <div class="row"><button class="btn main" data-act="jsave">${e.id?'Save changes':'Save entry'}</button>${e.id||e.text?'<button class="btn" data-act="jnew">Start a new entry</button>':''}</div>
+  <h3 style="margin:26px 0 10px">Your entries (${J.length})</h3>${list.length?list.map(x=>`<article class="entry"><h3>${new Date(x.date+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h3>${x.prompt?`<p class="pr">${esc(x.prompt[0])}</p>`:''}<p>${esc(x.text)}</p><div class="na"><button class="btn sm" data-act="jcopy" data-id="${x.id}">Copy</button><button class="btn sm" data-act="jedit" data-id="${x.id}">Edit</button><button class="btn sm danger" data-act="jdel" data-id="${x.id}">Delete</button></div></article>`).join(''):'<p class="hint">No entries yet. One or two sentences is plenty to start.</p>'}
+  <p class="hint">Tip: tap Copy and paste an entry to Claude if you want corrections.</p>`}
+async function jSave(){const t=$('#jtext').value.trim();if(!t)return;const isNew=!JE.id,id=JE.id||'e'+Date.now(),old=J.find(x=>x.id===id);const entry={date:$('#jdate').value||today(),prompt:JE.prompt||null,text:t,created:old?old.created:Date.now(),updated:Date.now()};
+  J=[...J.filter(x=>x.id!==id),{id,...entry}];LS.set('zs-journal',J);LS.set('zs-draft',null);JE={id:null,date:today(),prompt:pick(PROMPTS),text:''};if(isNew)addLeaves(2);render();
+  if(jCol){try{await jCol.doc(id).set(entry);status('Saved to your account ✓')}catch(e){status('Entry saved on this device only')}}}
+async function jDel(id){J=J.filter(x=>x.id!==id);LS.set('zs-journal',J);render();if(jCol){try{await jCol.doc(id).delete()}catch(e){}}}
+
+/* Pinnwand */
+function pinV(){if(pinOpen){const p=S.pins.find(x=>x.id===pinOpen);if(!p){pinOpen=null;return pinV()}return `<div class="row" style="margin-bottom:12px"><button class="btn sm" data-act="pinback">← All topics</button></div><div class="row" style="margin-bottom:14px"><input type="text" id="pintitle" value="${esc(p.title)}" aria-label="Topic name"><button class="btn sm" data-act="pinrename">Rename</button><button class="btn sm danger" data-act="pindel">Delete topic</button></div>`+notesV('pin:'+p.id)}
+  return `<p class="hint">New grammar topic as you level up? Pin it here. Each topic gets its own notes.</p><div class="pins">${S.pins.filter(p=>p.id!=='fragen').map(p=>`<button class="pinc" data-act="pinopen" data-id="${p.id}">${esc(p.title)}<small>${(n=>n+(n===1?' note':' notes'))((S.notes['pin:'+p.id]||[]).length)}</small></button>`).join('')}</div><div class="row"><input type="text" id="newpin" placeholder="e.g. Konjunktiv II, Passiv" lang="de"><button class="btn main" data-act="addpin">Pin it</button></div>`}
+/* Platten */
+function svgMotif(k){return {morgen:'<circle cx="70%" cy="34%" r="16%" fill="#fff3c9" opacity=".9"/><rect x="0" y="66%" width="100%" height="34%" fill="#000" opacity=".08"/>',herbst:'<g fill="#ffd08a" opacity=".85"><ellipse cx="72%" cy="28%" rx="9%" ry="5%" transform="rotate(30)"/><ellipse cx="55%" cy="40%" rx="7%" ry="4%"/><ellipse cx="82%" cy="48%" rx="6%" ry="3.5%"/></g>',regen:'<g stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"><path d="M40 20l-6 18M80 30l-6 18M120 14l-6 18M150 44l-6 18M60 60l-6 18M110 70l-6 18"/></g>',nacht:'<circle cx="72%" cy="30%" r="13%" fill="#f3ead2"/><circle cx="78%" cy="26%" r="11%" fill="#2a2d55"/><g fill="#fff"><circle cx="25%" cy="20%" r="1.5"/><circle cx="40%" cy="35%" r="1"/><circle cx="55%" cy="15%" r="1.3"/></g>'}[k]}
+function recCard(k,m){const url=S.links[k];return `<div class="recw"><button class="rec ${S.mood===k?'on':''}" data-act="rec" data-m="${k}" style="background:${m.bg}" aria-pressed="${playing===k}"><svg aria-hidden="true">${svgMotif(k)}</svg><span>${m.n}<br><small>${m.en}${playing===k?' · café music playing ♪':''}</small></span></button>${url?`<a class="yt" href="${esc(url)}" target="_blank" rel="noopener">▶ Open my playlist ↗</a>`:''}</div>`}
+function platV(){const mine=S.myrecs.map((r,i)=>`<div class="recw"><a class="rec" href="${esc(r.url)}" target="_blank" rel="noopener" data-act="myrec" data-m="${r.mood}" style="background:${MOODS[r.mood].bg}"><svg aria-hidden="true">${svgMotif(r.mood)}</svg><span>${esc(r.n)}<br><small>Opens in a new tab ↗</small></span></a></div>`).join('');
+  return `<p class="hint">Tap a record to change the light in the café and play soft café music. Records with a playlist link also open your music.</p><div class="recs">${Object.entries(MOODS).map(([k,m])=>recCard(k,m)).join('')}${mine}</div>
+  <div class="row" style="margin-top:18px"><label for="vol" class="hint" style="margin:0">Volume</label><input type="range" id="vol" min="0" max="1" step=".05" value="${vol}" style="flex:1"><button class="btn" data-act="stop" ${playing?'':'disabled'}>Stop café music</button></div>
+  <details class="ytbox" ${P.yt||!(Object.values(S.links).some(Boolean)||S.myrecs.length)?'open':''}><summary><b>Connect your YouTube playlists</b></summary>
+  <p class="hint">YouTube can't play inside the café itself, but each record can open one of your playlists in a new tab, already signed in to your account, so it keeps playing while you study. In YouTube or YouTube Music, open a playlist, tap <b>Share → Copy link</b>, and paste it here.</p>
+  ${Object.entries(MOODS).map(([k,m])=>`<div class="row" style="margin-bottom:8px"><label for="lk-${k}" style="min-width:130px;font-weight:700">${m.n}</label><input type="text" inputmode="url" id="lk-${k}" value="${esc(S.links[k]||'')}" placeholder="https://music.youtube.com/playlist?list=…"></div>`).join('')}
+  <div class="row"><button class="btn main" data-act="savelinks">Save links</button><span class="hint" id="ytmsg" style="margin:0" aria-live="polite"></span></div>
+  <h3 style="font-size:18px;margin:20px 0 8px">Add a record of your own</h3>
+  <div class="groups" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><input type="text" id="mrn" placeholder="Name, e.g. Deutsch-Pop"><input type="text" inputmode="url" id="mrl" placeholder="Playlist link"><select id="mrm" aria-label="Light in the café">${Object.entries(MOODS).map(([k,m])=>`<option value="${k}">Light: ${m.en}</option>`).join('')}</select><button class="btn main" data-act="addmyrec">Add record</button></div>
+  ${S.myrecs.map((r,i)=>`<div class="row" style="margin-bottom:6px"><span style="flex:1"><b>${esc(r.n)}</b> <span class="hint">${esc(r.url)}</span></span><button class="btn sm danger" data-act="rmmyrec" data-i="${i}">Remove</button></div>`).join('')}
+  </details>`}
+const okUrl=u=>/^https:\/\/[^\s"<>]+$/i.test(u);
+/* Pflanze */
+function plantV(){const toFlower=10-S.leaves%10;return `<div class="game" style="display:grid;grid-template-columns:minmax(0,160px) minmax(0,1fr);gap:16px;align-items:center;text-align:left"><img src="img/plant.jpg" alt="" style="width:100%;border-radius:12px;filter:saturate(${Math.min(1.3,.5+S.leaves/30)})"><div><div class="big" style="margin:0 0 8px">${S.leaves} ${S.leaves===1?'Blatt':'Blätter'}</div><div class="prog" aria-hidden="true"><i style="width:${(S.leaves%10)*10}%"></i></div><p class="hint">${toFlower} more ${toFlower===1?'leaf':'leaves'} until the next blossom.</p></div></div>
+  <p>Your plant grows with you: <b>+2</b> for each journal entry, <b>+1</b> for each new note, <b>+1</b> for every 5 correct answers when practising.</p><p class="hint">No streaks and nothing to lose. If you take a week off, it just waits for you.</p>`}
+
+/* ---------- events ---------- */
+$('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(b)hit(b.dataset.open,b.dataset.i)});
+$('#rooms').addEventListener('click',e=>{const b=e.target.closest('[data-room]');if(b)goRoom(b.dataset.room)});
+$('#dn').onclick=toggleNight;$('#lb').onclick=()=>{showLabels=!showLabels;LS.set('zs-labels',showLabels);buildRoom()};
+$('#pclose').onclick=close;$('#ov').addEventListener('click',e=>{if(e.target.id==='ov')close()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cur)close()});
+$('#ptabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){tab=b.dataset.tab;editing=null;render()}});
+$('#pbody').addEventListener('input',e=>{if(e.target.id==='jtext'){JE.text=e.target.value;$('#jstats').innerHTML=jStats(JE.text);LS.set('zs-draft',JE)}else if(e.target.id==='jdate'){JE.date=e.target.value}else if(e.target.id==='vsearch'){P.vs=e.target.value;$('#vlist').innerHTML=vListHTML()}else if(e.target.id==='vol'){vol=+e.target.value;LS.set('zs-vol',vol);if(master)master.gain.value=vol}else if(e.target.dataset.k&&P.val){P.val[e.target.dataset.k]=e.target.value}});
+$('#pbody').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('mb')){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));return}if(e.key!=='Enter'||e.target.tagName!=='INPUT')return;const map={newsent:'addsent',newpin:'addpin',pintitle:'pinrename',vde:'vadd',ven:'vadd',vtop:'vadd'};const a=map[e.target.id]||(e.target.dataset.addin&&'addchip');if(a){e.preventDefault();const b=e.target.dataset.addin?e.target.parentElement.querySelector('[data-act=addchip]'):$(`[data-act=${a}]`);b&&b.click()}});
+function armed(b){if(b.dataset.armed)return true;b.dataset.armed=1;const t=b.textContent;b.textContent='Sure?';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=t}},3000);return false}
+$('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act,d=b.dataset;
+  const notesKey=()=>cur==='pin'?'pin:'+pinOpen:cur==='fragen'?'pin:fragen':cur;
+  switch(a){
+  case 'edit':editing=d.id;break;
+  case 'addnote':{const n=N('','');n.fresh=1;(S.notes[d.key]||(S.notes[d.key]=[])).push(n);editing=n.id;break}
+  case 'cancel':{const arr=S.notes[notesKey()],n=arr.find(x=>x.id===d.id);if(n&&n.fresh&&!n.t&&!n.b)arr.splice(arr.indexOf(n),1);editing=null;break}
+  case 'savenote':{const n=S.notes[d.key].find(x=>x.id===d.id);n.t=$('#et').value.trim();n.b=$('#eb').value;if(n.fresh){delete n.fresh;S.leaves++;drawPlant()}editing=null;save();break}
+  case 'delnote':{if(!armed(b))return;const arr=S.notes[notesKey()];arr.splice(arr.findIndex(x=>x.id===d.id),1);editing=null;save();break}
+  case 'rmchip':S[d.list][d.g].splice(+d.i,1);P.q=null;save();break;
+  case 'addchip':{const inp=b.parentElement.querySelector('input'),v=inp.value.trim();if(!v)return;S[d.list][d.g].push(v);P.q=null;save();break}
+  case 'tile':P.ans.push(P.pool.splice(+d.k,1)[0]);break;
+  case 'untile':P.pool.push(P.ans.splice(+d.k,1)[0]);break;
+  case 'sbreset':P.pool=[...P.pool,...P.ans];P.ans=[];break;
+  case 'sbcheck':P.res=P.ans.map(t=>t.w).join(' ')===P.parts.join(' ');P.total=(P.total||0)+1;if(P.res){P.score=(P.score||0)+1;registerCorrect(1)}break;
+  case 'sbnew':{const keep={score:P.score,total:P.total};P={...keep};break}
+  case 'addsent':{const v=$('#newsent').value.trim();if(!v)return;S.sentences.push(v.includes('|')?v:v.split(/\s+/).join(' | '));save();break}
+  case 'rmsent':S.sentences.splice(+d.i,1);save();break;
+  case 'fkind':fNew(d.v);break;
+  case 'fnew':fNew();break;
+  case 'adjans':{const ok=d.v===P.cur[2],c=P.cur;P.res=ok;P.total=(P.total||0)+1;if(ok){P.score=(P.score||0)+1;registerCorrect(1);setTimeout(()=>{if(P.cur===c&&cur){if(!P.q.length)P.q=shuffle(ADJ);P.cur=P.q.pop();P.res=null;render()}},900)}break}
+  case 'adjnext':if(!P.q.length)P.q=shuffle(ADJ);P.cur=P.q.pop();P.res=null;break;
+  case 'fcheck':{document.querySelectorAll('.menu input.cell').forEach(i=>P.val[i.dataset.k]=i.value);const A=ART[P.kind];P.res={};P.score=0;P.hid.forEach(k=>{const [r,c]=k.split('-');const ok=(P.val[k]||'').trim().toLowerCase()===A[r][c];P.res[k]=ok;if(ok)P.score++});registerCorrect(P.score);break}
+  case 'pmode':P={mode:d.v,score:P.score,total:P.total};break;
+  case 'jar':{const ok=d.g===P.cur.g,c=P.cur;P.res=ok;P.total=(P.total||0)+1;if(ok){P.score=(P.score||0)+1;registerCorrect(1);setTimeout(()=>{if(P.cur===c&&cur){qNext(cur==='konn'?'conn':'preps');render()}},700)}break}
+  case 'qnext':qNext(cur==='konn'?'conn':'preps');break;
+  case 'copt':{const ok=d.v===P.cur[1],c=P.cur;P.res=ok;P.total=(P.total||0)+1;if(ok){P.score=(P.score||0)+1;registerCorrect(1);setTimeout(()=>{if(P.cur===c&&cur){cNext();render()}},700)}break}
+  case 'cnext':cNext();break;
+  case 'flip':if(S.verbs[P.cur])P.flip=!P.flip;break;
+  case 'vknew':P.total=(P.total||0)+1;P.score=(P.score||0)+1;registerCorrect(1);vNext();break;
+  case 'vagain':P.total=(P.total||0)+1;P.q.push(P.cur);vNext();break;
+  case 'addverb':{const g=id=>$('#'+id).value.trim(),inf=g('vinf');if(!inf)return;S.verbs.push({inf,en:g('ven'),prat:g('vprat'),p2:g('vp2'),aux:$('#vaux').value});P.q=null;save();break}
+  case 'rmverb':S.verbs.splice(+d.i,1);P.q=null;P.cur=null;save();break;
+  case 'jprompt':{let p;do{p=pick(PROMPTS)}while(PROMPTS.length>1&&JE.prompt&&p[0]===JE.prompt[0]);JE.prompt=p;JE.text=$('#jtext').value;break}
+  case 'jnoprompt':JE.prompt=null;JE.text=$('#jtext').value;break;
+  case 'jsave':jSave();return;
+  case 'jnew':JE={id:null,date:today(),prompt:pick(PROMPTS),text:''};LS.set('zs-draft',null);break;
+  case 'jedit':{const x=J.find(y=>y.id===d.id);if(!x)return;JE={id:x.id,date:x.date,prompt:x.prompt,text:x.text};render();$('#pbody').scrollTop=0;$('.sheet').scrollTop=0;$('#jtext').focus();return}
+  case 'jdel':if(!armed(b))return;jDel(d.id);return;
+  case 'jcopy':{const x=J.find(y=>y.id===d.id);if(!x)return;try{navigator.clipboard.writeText(x.text).then(()=>{b.textContent='Copied ✓'},()=>{b.textContent='Couldn\'t copy'})}catch(err){b.textContent='Couldn\'t copy'}return}
+  case 'pinopen':pinOpen=d.id;editing=null;break;
+  case 'pinback':pinOpen=null;editing=null;break;
+  case 'addpin':{const v=$('#newpin').value.trim();if(!v)return;const id=rid();S.pins.push({id,title:v});S.notes['pin:'+id]=[];pinOpen=id;drawPins();addLeaves(1);break}
+  case 'pinrename':{const p=S.pins.find(x=>x.id===pinOpen),v=$('#pintitle').value.trim();if(p&&v){p.title=v;save()}break}
+  case 'pindel':{if(!armed(b))return;S.pins=S.pins.filter(x=>x.id!==pinOpen);delete S.notes['pin:'+pinOpen];pinOpen=null;drawPins();save();break}
+  case 'rec':{const m=d.m;setMood(m);buildRoom();if(playing===m)stopMusic();else playMusic(m);save();break}
+  case 'stop':stopMusic();break;
+  case 'qadd':{const t=$('#qtext').value.trim();if(!t)return;S.inbox.unshift({id:'q'+Date.now(),text:t,created:Date.now()});save();break}
+  case 'qmove':{const sel=$('#mv-'+d.id);moveNote(d.id,sel.value);b.textContent='Moved ✓';break}
+  case 'qdel':if(!armed(b))return;S.inbox=S.inbox.filter(x=>x.id!==d.id);save();break;
+  case 'mmbranch':P.mm=d.k||null;break;
+  case 'mmvocab':open('vocab');P.vt=d.id;render();return;
+  case 'vtopic':P.vt=d.v||'';P.vq=null;P.vcur=null;break;
+  case 'vdir':P.vdir=d.v;P.vflip=false;break;
+  case 'vflip':P.vflip=!P.vflip;break;
+  case 'wknew':P.total=(P.total||0)+1;P.score=(P.score||0)+1;registerCorrect(1);vNextCard();break;
+  case 'wagain':P.total=(P.total||0)+1;(P.vq||(P.vq=[])).push(P.vcur);vNextCard();break;
+  case 'vadd':{const de=$('#vde').value.trim(),en=$('#ven').value.trim(),t=$('#vtop').value.trim()||'Andere';if(!de)return;S.vocab.unshift({id:'v'+Date.now(),de,en,topic:t});P.vq=null;drawJar();save();render();const f=$('#vde');f&&f.focus();return}
+  case 'vrm':S.vocab=S.vocab.filter(v=>v.id!==d.id);P.vq=null;drawJar();save();break;
+  case 'mmopen':open(d.k);return;
+  case 'mmpin':open('pin');pinOpen=d.id;render();return;
+  case 'mmnote':{const id=d.id;open(d.k);tab='notes';render();const a=document.querySelector(`[data-nid="${id}"]`);if(a){a.scrollIntoView({block:'center'});a.classList.add('flash')}return}
+  case 'myrec':stopMusic();setMood(d.m);buildRoom();save();document.querySelectorAll('.rec.on').forEach(x=>x.classList.remove('on'));return;
+  case 'savelinks':{P.yt=1;let bad=0;for(const k of Object.keys(MOODS)){const v=$('#lk-'+k).value.trim();if(v&&!okUrl(v)){bad++;continue}if(v)S.links[k]=v;else delete S.links[k]}save();render();const m=$('#ytmsg');if(m)m.textContent=bad?'Some links were skipped: they need to start with https://':'Saved ✓';return}
+  case 'addmyrec':{P.yt=1;const n=$('#mrn').value.trim(),u=$('#mrl').value.trim();if(!n||!okUrl(u)){$('#ytmsg').textContent='Add a name and a link that starts with https://';return}S.myrecs.push({n,url:u,mood:$('#mrm').value});save();break}
+  case 'rmmyrec':P.yt=1;S.myrecs.splice(+d.i,1);save();break;
+  }
+  render()});
+
+/* ---------- boot ---------- */
+if(S._mig)save();buildRoom();status('Saving in this browser');
+(async()=>{if(!window.claude||!window.claude.use){status('Saving in this browser only');return}
+  try{const [d,u]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);const id=u&&await u.id();if(!d||!id){status('Not signed in: saving in this browser only');return}
+    db=d;const base='data/users/'+id;const ref=db.doc(base+'/state');
+    const timer=setTimeout(()=>status('Can\'t reach your account, saving here for now'),10000);
+    const snap=await ref.get();clearTimeout(timer);stateRef=ref;
+    if(snap.exists&&snap.data().s){S=merge(snap.data().s);if(S._mig)save();else LS.set('zs-state',S);buildRoom();status('Saved to your account ✓')}else{save()}
+    jCol=db.doc(base+'/profile').collection('journal');
+    const localOnly=[...J];let first=true;
+    jCol.onSnapshot(qs=>{const remote=qs.docs.map(x=>({id:x.id,...x.data()}));if(first&&!qs.metadata.fromCache){first=false;const ids=new Set(remote.map(r=>r.id));localOnly.filter(x=>!ids.has(x.id)).forEach(x=>{const {id:eid,...rest}=x;jCol.doc(eid).set(rest).catch(()=>{})})}
+      const ids=new Set(remote.map(r=>r.id));J=[...remote,...(first?localOnly.filter(x=>!ids.has(x.id)):[])];LS.set('zs-journal',J);if(cur==='tagebuch'&&document.activeElement.id!=='jtext')render()},()=>status('Journal saved on this device only'));
+    if(cur)render();
+  }catch(e){status('Saving in this browser only')}})();
+}
+</script>
+</body>
+</html>
