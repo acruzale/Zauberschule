@@ -146,7 +146,15 @@ textarea{min-height:120px;resize:vertical;line-height:1.6}
 @media (prefers-reduced-motion:reduce){.rec .fx,.rec.photo .ph img{animation:none!important}}
 #gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:#0d0b09b3;backdrop-filter:blur(6px)}
 #gate[hidden]{display:none}
-.gatecard{width:min(420px,100%);background:var(--paper);color:var(--pink);border:1px solid var(--pline);border-radius:18px;padding:24px 22px;text-align:center;box-shadow:0 18px 50px #000a}
+.gatecard{width:min(520px,100%);max-height:calc(100vh - 32px);overflow:auto;background:var(--paper);color:var(--pink);border:1px solid var(--pline);border-radius:18px;text-align:center;box-shadow:0 18px 50px #000a}
+.gatehero{position:relative;aspect-ratio:2/1;overflow:hidden;background:#1b1014}
+.gatehero img{width:100%;height:100%;object-fit:cover;display:block;transform-origin:68% 45%;animation:gatezoom 40s ease-in-out infinite alternate}
+.gatehero::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,#0000 55%,var(--paper));pointer-events:none}
+@keyframes gatezoom{from{transform:scale(1)}to{transform:scale(1.1)}}
+#gmusic{position:absolute;top:10px;right:10px;z-index:1;min-height:34px;padding:4px 12px;border-radius:999px;border:1px solid #ffffff55;background:#00000066;color:#fff;font-weight:700;font-size:13px;backdrop-filter:blur(4px)}
+#gmusic[aria-pressed="true"]{background:#b5552fcc;border-color:#b5552f}
+.gatebody{padding:6px 22px 22px}
+@media (prefers-reduced-motion:reduce){.gatehero img{animation:none}}
 .gatecard h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;margin:0 0 4px}
 .gatecard p{margin:6px 0}
 .gatecard .btn{width:100%;margin-top:10px;color:var(--pink);border-color:var(--pline)}
@@ -195,7 +203,7 @@ textarea{min-height:120px;resize:vertical;line-height:1.6}
 <main id="stage" aria-label="Room"><div id="world"><img id="bg" alt="" draggable="false"><canvas id="fx"></canvas><div id="tint"></div><div id="glows"></div><div id="spots"></div></div></main>
 <div id="closeup" aria-hidden="true"><img src="img/book-closeup.jpg" alt=""></div>
 <header class="top"><h1>Meine Zauberschule</h1><div class="bar"><nav id="rooms" aria-label="Rooms"></nav><button id="dn"></button><button id="lb"></button><span id="status">Loading…</span><button id="acct" hidden></button></div></header>
-<div id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateh"><div class="gatecard"><h2 id="gateh">Meine Zauberschule</h2><p>A cosy magic school for learning German.</p><button class="btn main" id="gsignin">Sign in with Google</button><button class="btn" id="gguest">Explore as a guest</button><p class="hint" id="gmsg" aria-live="polite"></p><p class="hint">Signing in keeps your journal, notes and progress safe and the same on all your devices. Guests can look around and try everything; what a guest writes stays in their own browser.</p></div></div>
+<div id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateh"><div class="gatecard"><div class="gatehero"><img src="img/hero-login.jpg" alt=""><button id="gmusic" type="button" aria-pressed="false">♪ Music</button></div><div class="gatebody"><h2 id="gateh">Meine Zauberschule</h2><p>A cosy magic school for learning German.</p><button class="btn main" id="gsignin">Sign in with Google</button><button class="btn" id="gguest">Explore as a guest</button><p class="hint" id="gmsg" aria-live="polite"></p><p class="hint">Guests look around and explore, nothing gets saved.</p></div></div></div>
 <nav class="chips" id="chips" aria-label="Things in this room"></nav>
 <div id="eye" hidden role="dialog" aria-modal="true" aria-label="Telescope"><div class="eyebar"><button id="eyeback" data-act="eyeback" hidden>← Whole sky</button><span class="eyez"><button data-act="eyezout" aria-label="Zoom out">−</button><button data-act="eyezin" aria-label="Zoom in">+</button></span><button id="eyeclose" data-act="eyeclose">Close ×</button></div><div class="lens"><svg id="eyesvg" viewBox="0 0 1000 1000" role="group" aria-label="Constellations of your notes"></svg></div><div id="eyelist"></div></div>
 <div class="ov" id="ov" hidden>
@@ -414,7 +422,8 @@ nacht:{n:'Sternennacht',en:'Starry night (turns the school to night)',bg:'linear
 const PROMPTS=[['Was hast du heute gemacht?','What did you do today?'],['Was hast du heute gegessen?','What did you eat today?'],['Wie war deine Woche?','How was your week?'],['Was machst du am Wochenende?','What are you doing at the weekend?'],['Beschreibe einen magischen Ort.','Describe a magical place.'],['Was hast du heute Neues gelernt?','What did you learn today?'],['Worauf freust du dich?','What are you looking forward to?'],['Was war heute schwierig, und warum?','What was hard today, and why? (weil …)'],['Beschreibe dein Zimmer. Wo steht was?','Describe your room: where is everything? (Wo? → Dativ)'],['Erzähl von einem Hobby.','Tell me about a hobby.'],['Wie ist das Wetter, und was machst du deshalb?','What is the weather like, and what are you doing because of it? (deshalb …)'],['Was möchtest du dieses Jahr noch lernen?','What would you still like to learn this year?']];
 
 /* ---------- state + storage ---------- */
-const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let GUEST=false;
+const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){if(GUEST&&/^zs-(state|journal|draft)$/.test(k))return;try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 const merge=s=>{const o=structuredClone(DEF);if(s){Object.assign(o,s);o.notes={...structuredClone(DEF.notes),...(s.notes||{})};o.preps={...DEF.preps,...(s.preps||{})};o.conn={...DEF.conn,...(s.conn||{})};o.links={...(s.links||{})};o.inbox=s.inbox||[];o.prac=s.prac||{};o.seen=s.seen||{};if(s.ytm&&ytParse(s.ytm)&&!Object.values(o.links).some(Boolean))o.links.morgen=s.ytm;o.myrecs=s.myrecs||[]}if((o.cv||1)<2){applyAdd(o);o.cv=2;o._mig=1}if(o.cv<3){applyAdd3(o);o.cv=3;o._mig=1}if(o.cv<4){applyAdd4(o);o.cv=4;o._mig=1}if(o.cv<5){applyAdd5(o);o.cv=5;o._mig=1}if(o.cv<6){applyAdd6(o);o.cv=6;o._mig=1}return o};
 let S=merge(LS.get('zs-state'));if(!LS.get('zs-state')){const h=new Date().getHours();S.mood=(h<7||h>=19)?'nacht':'morgen'}
 let J=LS.get('zs-journal')||[];
@@ -588,7 +597,7 @@ function ytParse(u){try{const x=new URL(u.trim());if(!/(^|\.)youtube\.com$|(^|\.
   const m=x.pathname.match(/\/(?:embed|shorts|live)\/([\w-]{11})/);if(m)v=m[1];
   v=v&&/^[\w-]{11}$/.test(v)?v:null;return v||list?{v,list}:null}catch(e){return null}}
 function ytLoadApi(){if(ytReady)return ytReady;ytReady=new Promise(res=>{window.onYouTubeIframeAPIReady=res;const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';s.onerror=()=>{ytReady=null;ytSet(false,'Could not reach YouTube. Check your internet.')};document.head.appendChild(s)});return ytReady}
-function ytSet(on,msg){ytOn=on;ytMsg=msg||'';document.body.classList.toggle('ytplaying',on);document.querySelectorAll('.rec[data-key]').forEach(c=>{const pl=on&&c.dataset.key===ytKey;c.classList.toggle('playing',pl);c.setAttribute('aria-pressed',pl);const sm=c.querySelector('.st');if(sm)sm.textContent=pl?' · playing ♪':(c.dataset.has?' · tap to play':' · add a link below')});{const sb=document.querySelector('[data-act=stop]');if(sb)sb.disabled=!on}const b=$('#ytbtn');if(b){b.textContent=on?'❚❚ Pause':'▶ Play';b.setAttribute('aria-pressed',on)}const m=$('#ytstate');if(m)m.textContent=ytMsg}
+function ytSet(on,msg){ytOn=on;ytMsg=msg||'';if(typeof gmBtn==='function')setTimeout(gmBtn,0);document.body.classList.toggle('ytplaying',on);document.querySelectorAll('.rec[data-key]').forEach(c=>{const pl=on&&c.dataset.key===ytKey;c.classList.toggle('playing',pl);c.setAttribute('aria-pressed',pl);const sm=c.querySelector('.st');if(sm)sm.textContent=pl?' · playing ♪':(c.dataset.has?' · tap to play':' · add a link below')});{const sb=document.querySelector('[data-act=stop]');if(sb)sb.disabled=!on}const b=$('#ytbtn');if(b){b.textContent=on?'❚❚ Pause':'▶ Play';b.setAttribute('aria-pressed',on)}const m=$('#ytstate');if(m)m.textContent=ytMsg}
 async function ytPlay(url,key){const p=ytParse(url||'');if(!p){ytSet(false,'This record has no YouTube link yet.');return}ytKey=key;
   stopMusic();ytSet(true,'Loading…');await ytLoadApi();
   if(YTP&&YTP._src===url){YTP.setVolume(Math.round(vol*100));YTP.playVideo();return}
@@ -881,11 +890,11 @@ let FB=null,lastPush=0,cloudUser=null;
 const loadJs=src=>new Promise((res,rej)=>{const s2=document.createElement('script');s2.src=src;s2.onload=res;s2.onerror=rej;document.head.appendChild(s2)});
 async function fbInit(){if(!FIREBASE_CONFIG)return null;if(FB)return FB;const base='https://www.gstatic.com/firebasejs/10.12.2/';await loadJs(base+'firebase-app-compat.js');await Promise.all([loadJs(base+'firebase-auth-compat.js'),loadJs(base+'firebase-firestore-compat.js')]);
   firebase.initializeApp(FIREBASE_CONFIG);const fs=firebase.firestore();fs.settings({ignoreUndefinedProperties:true,merge:true});FB={auth:firebase.auth(),fs};return FB}
-function showGate(msg){$('#gate').hidden=false;$('#gmsg').textContent=msg||(FIREBASE_CONFIG?'':'Sign-in isn\'t switched on yet. You can explore as a guest.');$('#gsignin').disabled=!FIREBASE_CONFIG;setTimeout(()=>$(FIREBASE_CONFIG?'#gsignin':'#gguest').focus(),50)}
+function showGate(msg){$('#gate').hidden=false;gateMusic();$('#gmsg').textContent=msg||(FIREBASE_CONFIG?'':'Sign-in isn\'t switched on yet. You can explore as a guest.');$('#gsignin').disabled=!FIREBASE_CONFIG;setTimeout(()=>$(FIREBASE_CONFIG?'#gsignin':'#gguest').focus(),50)}
 function hideGate(){$('#gate').hidden=true}
 function acctBtn(){const b=$('#acct');b.hidden=false;b.textContent=cloudUser?'Sign out'+(cloudUser.displayName?' ('+cloudUser.displayName.split(' ')[0]+')':''):'Sign in'}
-function asGuest(){LS.set('zs-mode','guest');cloudUser=null;hideGate();acctBtn();status('Guest: saving in this browser only')}
-async function connectCloud(u){cloudUser=u;acctBtn();status('Connecting to your account…');
+function asGuest(){LS.set('zs-mode','guest');GUEST=true;cloudUser=null;hideGate();acctBtn();status('Guest: exploring, nothing is saved')}
+async function connectCloud(u){GUEST=false;cloudUser=u;acctBtn();status('Connecting to your account…');
   try{const fs=FB.fs,ref=fs.doc('users/'+u.uid+'/app/state');
     const snap=await ref.get();stateRef=ref;
     if(snap.exists&&snap.data().s){S=merge(snap.data().s);lastPush=snap.data().t||0;if(S._mig)save();else LS.set('zs-state',S);buildRoom();status('Saved to your account ✓')}else{save();status('Your notes are now saved to your account ✓')}
@@ -899,6 +908,12 @@ document.addEventListener('visibilitychange',async()=>{if(document.hidden||!stat
 async function signIn(){$('#gmsg').textContent='Opening Google sign-in…';try{const fb=await fbInit();const prov=new firebase.auth.GoogleAuthProvider();try{await fb.auth.signInWithPopup(prov)}catch(e){if(e&&/popup/.test(e.code||''))await fb.auth.signInWithRedirect(prov);else throw e}}catch(e){$('#gmsg').textContent=e&&e.code==='auth/unauthorized-domain'?'This website address isn\'t allowed in Firebase yet (Authentication → Settings → Authorized domains).':'Sign-in didn\'t work. You can try again or explore as a guest.'}}
 $('#gsignin').onclick=signIn;
 $('#gguest').onclick=asGuest;
+const GATE_MUSIC='https://www.youtube.com/watch?v=kTvrtWm0XA8';let gateArmed=false;
+const gPlaying=()=>ytKey==='gate'&&!!YTP&&typeof YTP.getPlayerState==='function'&&YTP.getPlayerState()===1;
+function gmBtn(){const b=$('#gmusic');if(!b)return;const on=gPlaying();b.setAttribute('aria-pressed',on);b.textContent=on?'♪ Music on':'♪ Music'}
+function gateStart(){if(YTP&&YTP._src===GATE_MUSIC&&typeof YTP.playVideo==='function'){YTP.playVideo();ytSet(true,'Playing ♪')}else ytPlay(GATE_MUSIC,'gate');setTimeout(gmBtn,1500)}
+function gateMusic(){if(ytOn&&ytKey!=='gate')return;ytPlay(GATE_MUSIC,'gate');setTimeout(()=>{if(gPlaying()){gmBtn();return}if(ytKey==='gate')ytSet(false,'');gmBtn();if(gateArmed)return;gateArmed=true;const go=e=>{if(e.target.closest&&e.target.closest('#gmusic'))return;$('#gate').removeEventListener('pointerdown',go);if(!gPlaying())gateStart()};$('#gate').addEventListener('pointerdown',go)},3000)}
+$('#gmusic').onclick=()=>{if(gPlaying()){ytPause();setTimeout(gmBtn,300)}else gateStart()};
 $('#acct').onclick=async()=>{const b=$('#acct');if(!cloudUser){showGate();return}if(!armed(b))return;try{await FB.auth.signOut()}catch(e){}LS.set('zs-mode',null);LS.set('zs-state',null);LS.set('zs-journal',null);LS.set('zs-draft',null);location.reload()};
 (async()=>{const mode=LS.get('zs-mode');
   if(mode==='google'&&FIREBASE_CONFIG){status('Connecting…');try{await fbInit()}catch(e){status('Offline: saving in this browser for now');acctBtn();return}}
