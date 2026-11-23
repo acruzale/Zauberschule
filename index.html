@@ -955,7 +955,7 @@ async function fbInit(){if(!FIREBASE_CONFIG)return null;if(FB)return FB;const ba
   firebase.initializeApp(FIREBASE_CONFIG);const fs=firebase.firestore();fs.settings({ignoreUndefinedProperties:true,merge:true});FB={auth:firebase.auth(),fs};return FB}
 function showGate(msg){$('#gate').hidden=false;if(FIREBASE_CONFIG)fbReady().catch(()=>{});$('#gmsg').textContent=msg||(FIREBASE_CONFIG?'':'Sign-in isn\'t switched on yet. You can explore as a guest.');$('#gsignin').disabled=!FIREBASE_CONFIG;setTimeout(()=>$(FIREBASE_CONFIG?'#gsignin':'#gguest').focus(),50)}
 function hideGate(){$('#gate').hidden=true;setTimeout(roomMusic,100)}
-function acctBtn(){const b=$('#acct');b.hidden=false;b.textContent=cloudUser?'Sign out'+(cloudUser.displayName?' ('+cloudUser.displayName.split(' ')[0]+')':''):'Sign in'}
+function acctBtn(){const b=$('#acct');b.hidden=false;b.textContent=cloudUser?'Sign out':'Guest';b.title=cloudUser?'Sign out of your account':'Exploring as a guest · tap to sign in';b.setAttribute('aria-label',b.title)}
 function asGuest(){LS.set('zs-mode','guest');GUEST=true;cloudUser=null;hideGate();acctBtn();status('Guest: exploring, nothing is saved')}
 async function connectCloud(u){GUEST=false;cloudUser=u;acctBtn();status('Connecting to your account…');
   try{const fs=FB.fs,ref=fs.doc('users/'+u.uid+'/app/state');
