@@ -114,6 +114,17 @@ textarea{min-height:120px;resize:vertical;line-height:1.6}
 .yt{font-weight:700;color:#f2b98a;text-decoration:none;padding:6px 2px}
 .ytbox{padding:12px 16px;margin-top:18px}
 .ytbox.ytm{margin:0 0 16px}
+.chips{cursor:grab;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent)}
+.chips.drag{cursor:grabbing;user-select:none}
+.chips.drag button{pointer-events:none}
+#eyesvg{touch-action:none;cursor:grab}
+.eyez{display:flex;gap:6px}
+.eyez button{min-width:40px;font-size:20px;line-height:1}
+.corr{background:#f6ecd6;border-left:4px solid var(--acc);border-radius:8px;padding:8px 12px;margin:8px 0;white-space:normal}
+.corr p{white-space:normal}
+.corr .btn{margin:2px 0}
+.corrbox{margin-top:10px}
+.corrbox textarea{width:100%;min-height:110px;margin-bottom:8px}
 #ytp{position:fixed;left:0;bottom:0;width:200px;height:200px;opacity:0;pointer-events:none;z-index:-1;overflow:hidden}.ytbox summary{cursor:pointer;min-height:32px}
 .jstats{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:14px;color:var(--soft);margin:8px 0 12px}
 .entry{padding:12px 16px;margin-bottom:10px}.entry h3{font-size:20px}.entry p{white-space:pre-wrap;margin:6px 0}.entry .pr{font-size:14px;margin:2px 0}
@@ -146,7 +157,7 @@ textarea{min-height:120px;resize:vertical;line-height:1.6}
 <div id="closeup" aria-hidden="true"><img src="img/book-closeup.jpg" alt=""></div>
 <header class="top"><h1>Meine Zauberschule</h1><div class="bar"><nav id="rooms" aria-label="Rooms"></nav><button id="dn"></button><button id="lb"></button><span id="status">Loading…</span></div></header>
 <nav class="chips" id="chips" aria-label="Things in this room"></nav>
-<div id="eye" hidden role="dialog" aria-modal="true" aria-label="Telescope"><div class="eyebar"><button id="eyeback" data-act="eyeback" hidden>← Whole sky</button><span></span><button id="eyeclose" data-act="eyeclose">Close ×</button></div><div class="lens"><svg id="eyesvg" viewBox="0 0 1000 1000" role="group" aria-label="Constellations of your notes"></svg></div><div id="eyelist"></div></div>
+<div id="eye" hidden role="dialog" aria-modal="true" aria-label="Telescope"><div class="eyebar"><button id="eyeback" data-act="eyeback" hidden>← Whole sky</button><span class="eyez"><button data-act="eyezout" aria-label="Zoom out">−</button><button data-act="eyezin" aria-label="Zoom in">+</button></span><button id="eyeclose" data-act="eyeclose">Close ×</button></div><div class="lens"><svg id="eyesvg" viewBox="0 0 1000 1000" role="group" aria-label="Constellations of your notes"></svg></div><div id="eyelist"></div></div>
 <div class="ov" id="ov" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="ptitle">
     <header class="sh"><div><p class="obj" id="pobj"></p><h2 id="ptitle"></h2><p class="en" id="pen"></p></div><div class="row" style="flex-wrap:nowrap"><div id="part"></div><button class="x" id="pclose" aria-label="Close">×</button></div></header>
@@ -210,7 +221,7 @@ conn:{koord:['aber','denn','doch','oder','sondern','und'],
 sub:['als','bevor','bis','da','damit (so that)','dass','ehe','falls','indem','nachdem','ob','obgleich','obwohl','obschon','seit','seitdem (since)','sobald','sodass','sofern','solange','sooft','soweit','soviel','während','weil','wenn','wie','wohingegen'],
 adv:['allerdings','also','andererseits','anschließend','außerdem','beziehungsweise','dabei','dadurch','dafür','dagegen','damit (with that)','danach','dann','darauf','darum','davor','dazu','demnach','deshalb','deswegen','einerseits','entweder … oder','ferner','folglich','genauso','immerhin','inzwischen','jedoch','schließlich','seitdem (since then)','somit','sonst','später','trotzdem','vorher','weder … noch','zuerst','zuvor','zwar']},
 verbs:[['machen','make, do','machte','gemacht','haben'],['gehen','go','ging','gegangen','sein'],['fahren','drive, go','fuhr','gefahren','sein'],['kommen','come','kam','gekommen','sein'],['sein','be','war','gewesen','sein'],['haben','have','hatte','gehabt','haben'],['werden','become','wurde','geworden','sein'],['schreiben','write','schrieb','geschrieben','haben'],['lesen','read','las','gelesen','haben'],['sprechen','speak','sprach','gesprochen','haben'],['essen','eat','aß','gegessen','haben'],['trinken','drink','trank','getrunken','haben'],['kaufen','buy','kaufte','gekauft','haben'],['einkaufen','go shopping','kaufte ein','eingekauft','haben'],['aufstehen','get up','stand auf','aufgestanden','sein'],['besuchen','visit','besuchte','besucht','haben'],['studieren','study','studierte','studiert','haben'],['verstehen','understand','verstand','verstanden','haben'],['bleiben','stay','blieb','geblieben','sein'],['können','can','konnte','gekonnt','haben'],['müssen','must','musste','gemusst','haben'],['wissen','know (a fact)','wusste','gewusst','haben']].map(([inf,en,prat,p2,aux])=>({inf,en,prat,p2,aux})),
-pins:[{id:'fragen',title:'Fragen, Ja & Nein'}],links:{},myrecs:[],inbox:[]};
+pins:[{id:'fragen',title:'Fragen, Ja & Nein'}],links:{},myrecs:[],inbox:[],prac:{},seen:{}};
 
 /* ---------- lesson notes (Sommer + Herbst), added as content v2 ---------- */
 const M=(id,t,b)=>({id:'v2-'+id,t,b});
@@ -346,6 +357,7 @@ mindmap:{n:'Sternkarte',en:'All your notes as constellations',obj:'Das Teleskop'
 fragen:{n:'Fragen & Antworten',en:'Asking, yes & no',obj:'Die Tür'},
 tagebuch:{n:'Tagebuch',en:'Your German journal',obj:'Der Schreibtisch'},
 pin:{n:'Pergament',en:'New topics as you level up',obj:'Das Pergament'},
+pruefung:{n:'Mini-Prüfung',en:'A mixed quiz from all your notes. Stop whenever you like.',obj:'Der Stuhl'},
 pult:{n:'Sprechen & Präsentieren',en:'Opinions, presenting, requests, describing pictures',obj:'Das Pult'},
 platten:{n:'Musik & Licht',en:'Pick a record for the mood',obj:'Der Kronleuchter'},
 notizen:{n:'Schnellnotizen',en:'Quick notes now, sort them into the school later',obj:'Das Seehaus'},
@@ -363,14 +375,14 @@ const PROMPTS=[['Was hast du heute gemacht?','What did you do today?'],['Was has
 
 /* ---------- state + storage ---------- */
 const LS={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const merge=s=>{const o=structuredClone(DEF);if(s){Object.assign(o,s);o.notes={...structuredClone(DEF.notes),...(s.notes||{})};o.preps={...DEF.preps,...(s.preps||{})};o.conn={...DEF.conn,...(s.conn||{})};o.links={...(s.links||{})};o.inbox=s.inbox||[];o.myrecs=s.myrecs||[]}if((o.cv||1)<2){applyAdd(o);o.cv=2;o._mig=1}if(o.cv<3){applyAdd3(o);o.cv=3;o._mig=1}if(o.cv<4){applyAdd4(o);o.cv=4;o._mig=1}if(o.cv<5){applyAdd5(o);o.cv=5;o._mig=1}if(o.cv<6){applyAdd6(o);o.cv=6;o._mig=1}return o};
+const merge=s=>{const o=structuredClone(DEF);if(s){Object.assign(o,s);o.notes={...structuredClone(DEF.notes),...(s.notes||{})};o.preps={...DEF.preps,...(s.preps||{})};o.conn={...DEF.conn,...(s.conn||{})};o.links={...(s.links||{})};o.inbox=s.inbox||[];o.prac=s.prac||{};o.seen=s.seen||{};o.myrecs=s.myrecs||[]}if((o.cv||1)<2){applyAdd(o);o.cv=2;o._mig=1}if(o.cv<3){applyAdd3(o);o.cv=3;o._mig=1}if(o.cv<4){applyAdd4(o);o.cv=4;o._mig=1}if(o.cv<5){applyAdd5(o);o.cv=5;o._mig=1}if(o.cv<6){applyAdd6(o);o.cv=6;o._mig=1}return o};
 let S=merge(LS.get('zs-state'));if(!LS.get('zs-state')){const h=new Date().getHours();S.mood=(h<7||h>=19)?'nacht':'morgen'}
 let J=LS.get('zs-journal')||[];
 let db=null,stateRef=null,jCol=null,mode='local',chain=Promise.resolve(),tSave=null;
 const status=t=>{$('#status').textContent=t};
 function save(){delete S._mig;LS.set('zs-state',S);clearTimeout(tSave);tSave=setTimeout(()=>{if(!stateRef)return;const body={v:1,s:structuredClone(S)};chain=chain.then(()=>stateRef.set(body)).then(()=>status('Saved to your account ✓')).catch(e=>status(e&&e.code==='quota_exceeded'?'Storage full: please delete some old notes':'Not saved to your account, only on this device'))},700)}
 function addLeaves(n){S.leaves+=n;drawPlant();save()}
-function registerCorrect(n){S.correct+=n;while(S.correct>=5){S.correct-=5;S.leaves++}drawPlant();save()}
+function registerCorrect(n){if(cur&&S.prac)S.prac[cur]=Date.now();S.correct+=n;while(S.correct>=5){S.correct-=5;S.leaves++}drawPlant();save()}
 
 function setMood(m){S.mood=m}
 function drawPlant(){}function drawPins(){}function drawJar(){}
@@ -384,7 +396,7 @@ const ROOMS={
    {st:'faelle',r:[[756,266,56,64],[914,262,70,52],[1168,325,62,46],[774,340,50,52]],l:[868,232],lab:'Porträts · Fälle'},
    {st:'pin',r:[[1000,252,50,62]],l:[1026,236],lab:'Pergament'},
    {st:'fragen',r:[[836,300,66,100]],l:[868,412],lab:'Tür · Fragen'},
-   {st:'pult',r:[[815,475,105,50]],l:[862,480],lab:'Pult · Sprechen'},
+   {st:'pult',r:[[815,475,105,50]],l:[866,548],lab:'Pult · Sprechen'},
    {st:'satzbau',r:[[926,398,180,104]],l:[1040,520],lab:'Treppe · Satzbau'},
    {st:'vocab',r:[[700,518,110,70]],l:[755,604],lab:'Kessel · Wortschatz',zoom:[755,553]},
    {st:'praep',r:[[1246,530,90,64]],l:[1290,612],lab:'Truhe · Präpositionen'},
@@ -398,7 +410,8 @@ const ROOMS={
    {st:'mindmap',r:[[770,590,140,130]],l:[840,575],lab:'Teleskop · Mindmap',zoom:[835,655]},
    {st:'daynight',r:[[1190,512,210,212]],l:[1295,740],lab:'Sonne & Mond · Tag/Nacht'},
    {st:'platten',r:[[880,10,880,290]],l:[1190,310],lab:'Leuchter · Musik'},
-   {st:'pflanze',r:[[212,256,94,470],[486,312,82,400],[722,352,82,350]],l:[520,250],lab:'Sternenfenster · Fortschritt'}]},
+   {st:'pflanze',r:[[212,256,94,470],[486,312,82,400],[722,352,82,350]],l:[520,250],lab:'Sternenfenster · Fortschritt'},
+   {st:'pruefung',r:[[980,940,220,260]],l:[1090,925],lab:'Stuhl · Mini-Prüfung'}]},
  bib:{n:'Bibliothek',w:1920,h:1200,day:'img/library.jpg',night:'img/library.jpg',tint:1,
   glows:[[648,662,46],[848,668,46]],
   dust:[[1200,300,1800,900]],
@@ -463,10 +476,13 @@ if(!matchMedia('(prefers-reduced-motion: reduce)').matches)requestAnimationFrame
 
 /* ---------- telescope: notes as constellations ---------- */
 const MM=[['satzbau','Satzbau'],['faelle','Fälle'],['praep','Präpositionen'],['verben','Verben'],['konn','Konnektoren'],['vocab','Wortschatz'],['fragen','Fragen'],['pult','Sprechen'],['pin','Pinnwand']];
-function mmKids(k){if(k==='vocab')return vTopics().map(t=>({t:t+' ('+S.vocab.filter(v=>(v.topic||'Andere')===t).length+')',act:'eyevocab',id:t,k}));if(k==='pin')return S.pins.filter(p=>p.id!=='fragen'&&!isSpeak(p.id)).map(p=>({t:p.title,act:'eyepin',id:p.id,k}));if(k==='pult')return S.pins.filter(p=>isSpeak(p.id)).map(p=>({t:p.title,act:'eyepult',id:p.id,k}));return (S.notes[k==='fragen'?'pin:fragen':k]||[]).map(n=>({t:(n.t||'Untitled').split(' · ')[0],act:'eyenote',id:n.id,k}))}
+function pinTs(id){return Math.max(0,...(S.notes['pin:'+id]||[]).map(n=>S.seen[n.id]||0))}
+function fresh(ts){if(!ts)return .3;const d=(Date.now()-ts)/864e5;return d<3?1:d<7?.8:d<14?.55:.35}
+function ago(ts){if(!ts)return 'not practised yet';const d=(Date.now()-ts)/864e5;return d<1?'practised today':d<2?'practised yesterday':'practised '+Math.floor(d)+' days ago'}
+function mmKids(k){if(k==='vocab')return vTopics().map(t=>({t:t+' ('+S.vocab.filter(v=>(v.topic||'Andere')===t).length+')',act:'eyevocab',id:t,k,ts:Math.max(S.seen['vt:'+t]||0,S.prac.vocab||0)}));if(k==='pin')return S.pins.filter(p=>p.id!=='fragen'&&!isSpeak(p.id)).map(p=>({t:p.title,act:'eyepin',id:p.id,k,ts:pinTs(p.id)}));if(k==='pult')return S.pins.filter(p=>isSpeak(p.id)).map(p=>({t:p.title,act:'eyepult',id:p.id,k,ts:pinTs(p.id)}));return (S.notes[k==='fragen'?'pin:fragen':k]||[]).map(n=>({t:(n.t||'Untitled').split(' · ')[0],act:'eyenote',id:n.id,k,ts:Math.max(S.seen[n.id]||0,S.prac[k]||0)}))}
 const cut=(t,n)=>t.length>n?t.slice(0,n-1)+'…':t;
 function hashf(s){let h=2166136261;for(const c of s)h=Math.imul(h^c.charCodeAt(0),16777619);return ()=>{h=Math.imul(h^h>>>15,2246822507);h=Math.imul(h^h>>>13,3266489909);return ((h^=h>>>16)>>>0)/4294967296}}
-let EYE={sel:null,vb:[0,0,1000,1000],anim:null};
+let EYE={sel:null,vb:[0,0,1000,1000],anim:null,lab:false};
 function skyStars(){const r=hashf('sky');let s='';for(let i=0;i<420;i++){const a=r()*Math.PI*2,d=Math.sqrt(r())*500,x=500+Math.cos(a)*d,y=500+Math.sin(a)*d,z=r();s+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(z*1.4+.3).toFixed(2)}" fill="#fff" opacity="${(.25+z*.6).toFixed(2)}"${i%9===0?` class="tw" style="animation-delay:${(-r()*4).toFixed(2)}s"`:''}/>`}return s}
 function constellations(){return MM.map(([k,t],i)=>{const a=(-90+i*360/MM.length)*Math.PI/180,cx=500+Math.cos(a)*285,cy=500+Math.sin(a)*285,kids=mmKids(k),r=hashf(k),pts=[];
   kids.forEach((o,j)=>{let best=null;for(let tries=0;tries<30;tries++){const aa=r()*Math.PI*2,dd=18+Math.sqrt(r())*88,x=cx+Math.cos(aa)*dd,y=cy+Math.sin(aa)*dd*.85;const md=Math.min(999,...pts.map(p=>Math.hypot(p.x-x,p.y-y)));if(!best||md>best.md)best={x,y,md};if(md>26)break}pts.push({x:best.x,y:best.y,o})});
@@ -475,20 +491,21 @@ function eyeSVG(){const C=constellations(),z=EYE.sel;
   let s=`<defs><radialGradient id="neb1"><stop offset="0" stop-color="#5b7bd6" stop-opacity=".35"/><stop offset="1" stop-color="#5b7bd6" stop-opacity="0"/></radialGradient><radialGradient id="neb2"><stop offset="0" stop-color="#9d6bd6" stop-opacity=".25"/><stop offset="1" stop-color="#9d6bd6" stop-opacity="0"/></radialGradient><filter id="glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="3.2"/></filter><clipPath id="lens"><circle cx="500" cy="500" r="500"/></clipPath></defs><g clip-path="url(#lens)"><rect width="1000" height="1000" fill="#060b1c"/><circle cx="320" cy="380" r="330" fill="url(#neb1)"/><circle cx="700" cy="650" r="300" fill="url(#neb2)"/>${skyStars()}`;
   C.forEach(c=>{const on=z===c.k,dim=z&&!on;s+=`<g class="con${on?' on':''}" data-act="eyesel" data-k="${c.k}" opacity="${dim?.3:1}"><circle cx="${c.cx}" cy="${c.cy}" r="118" fill="transparent"/>`;
     if(c.order.length>1)s+=`<polyline points="${c.order.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')}" fill="none" stroke="#9fd0ff" stroke-width="${on?1:1.4}" opacity=".55"/>`;
-    c.pts.forEach(p=>{s+=`<g class="star" ${on?`data-act="${p.o.act}" data-k="${p.o.k}" data-id="${esc(p.o.id)}"`:''}><circle cx="${p.x}" cy="${p.y}" r="${on?4:6}" fill="#bfe2ff" filter="url(#glow)"/><circle cx="${p.x}" cy="${p.y}" r="${on?1.8:2.6}" fill="#fff"/>${on?`<text x="${p.x+6}" y="${p.y+2.4}" font-size="7.5" fill="#e8f3ff">${esc(cut(p.o.t,26))}</text><circle cx="${p.x}" cy="${p.y}" r="9" fill="transparent"/>`:''}</g>`});
+    c.pts.forEach(p=>{const L=on||EYE.lab;s+=`<g class="star" opacity="${fresh(p.o.ts).toFixed(2)}" ${L?`data-act="${p.o.act}" data-k="${p.o.k}" data-id="${esc(p.o.id)}"`:''}><circle cx="${p.x}" cy="${p.y}" r="${L?4:6}" fill="#bfe2ff" filter="url(#glow)"/><circle cx="${p.x}" cy="${p.y}" r="${L?1.8:2.6}" fill="#fff"/>${L?`<text x="${p.x+6}" y="${p.y+2.4}" font-size="7.5" fill="#e8f3ff">${esc(cut(p.o.t,26))}</text><circle cx="${p.x}" cy="${p.y}" r="9" fill="transparent"/>`:''}</g>`});
     if(!c.pts.length)s+=`<circle cx="${c.cx}" cy="${c.cy}" r="3" fill="#bfe2ff" opacity=".6"/>`;
     if(!dim)s+=`<text x="${c.cx}" y="${c.cy+(on?-104:128)}" text-anchor="middle" class="cname" font-size="${on?13:26}">${c.t}</text>`;if(!on&&!dim)s+=`<text x="${c.cx}" y="${c.cy+150}" text-anchor="middle" font-size="15" fill="#9fb6d8">${c.pts.length} ${c.pts.length===1?'Stern':'Sterne'}</text>`;s+='</g>'});
   return s+'</g>'}
 function eyeTarget(){if(!EYE.sel)return [0,0,1000,1000];const c=constellations().find(x=>x.k===EYE.sel);return [c.cx-150,c.cy-150,300,300]}
 function animVB(to){const from=[...EYE.vb],t0=performance.now(),svg=$('#eyesvg');cancelAnimationFrame(EYE.anim);const step=t=>{const k=Math.min(1,(t-t0)/600),e=k<.5?2*k*k:1-(-2*k+2)**2/2;EYE.vb=from.map((v,i)=>v+(to[i]-v)*e);svg.setAttribute('viewBox',EYE.vb.join(' '));if(k<1)EYE.anim=requestAnimationFrame(step)};EYE.anim=requestAnimationFrame(step)}
 function renderEye(){$('#eyesvg').innerHTML=eyeSVG();const z=EYE.sel;$('#eyeback').hidden=!z;
-  $('#eyelist').innerHTML=z?`<h3>${MM.find(m=>m[0]===z)[1]}</h3><div class="mmlist">${mmKids(z).map(o=>`<button data-act="${o.act}" data-k="${o.k}" data-id="${esc(o.id)}">${esc(o.t)}</button>`).join('')||'<span>No notes here yet.</span>'}</div><button class="btn main" data-act="eyeopen" data-k="${z}">Open ${MM.find(m=>m[0]===z)[1]}</button>`:'<p>Tap a constellation to look closer. Every star is one of your notes.</p>'}
-function openEye(){EYE.sel=null;EYE.vb=[0,0,1000,1000];$('#eyesvg').setAttribute('viewBox','0 0 1000 1000');renderEye();$('#eye').hidden=false;$('#eyeclose').focus()}
+  $('#eyelist').innerHTML=z?`<h3>${MM.find(m=>m[0]===z)[1]}</h3><div class="mmlist">${mmKids(z).map(o=>`<button data-act="${o.act}" data-k="${o.k}" data-id="${esc(o.id)}" style="opacity:${Math.max(.6,fresh(o.ts))}">${esc(o.t)} <small style="opacity:.75">· ${ago(o.ts)}</small></button>`).join('')||'<span>No notes here yet.</span>'}</div><button class="btn main" data-act="eyeopen" data-k="${z}">Open ${MM.find(m=>m[0]===z)[1]}</button>`:'<p>Tap a constellation to look closer. Every star is one of your notes. <b>Bright</b> stars were practised recently, <b>dim</b> ones are ready for review. Scroll or pinch to zoom, drag to look around.</p>'}
+function openEye(){EYE.sel=null;EYE.lab=false;EYE.vb=[0,0,1000,1000];$('#eyesvg').setAttribute('viewBox','0 0 1000 1000');renderEye();$('#eye').hidden=false;$('#eyeclose').focus()}
 function closeEye(keepZoom){$('#eye').hidden=true;if(!keepZoom)unzoom()}
 $('#eye').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b)return;const a=b.dataset.act,d=b.dataset;
   if(a==='eyesel'){if(EYE.sel===d.k)return;EYE.sel=d.k;renderEye();animVB(eyeTarget());return}
   if(a==='eyeback'){EYE.sel=null;renderEye();animVB([0,0,1000,1000]);return}
   if(a==='eyeclose'){closeEye();return}
+  if(a==='eyezin'||a==='eyezout'){const [x,y,w]=EYE.vb;eyeZoomAt(a==='eyezin'?.7:1/.7,x+w/2,y+w/2);return}
   closeEye();unzoom();
   if(a==='eyeopen'){open(d.k);return}
   if(a==='eyevocab'){open('vocab');P.vt=d.id;render();return}
@@ -496,6 +513,17 @@ $('#eye').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if
   if(a==='eyepult'){open('pult');pinOpen=d.id;render();return}
   if(a==='eyenote'){const id=d.id;open(d.k);tab='notes';render();const el2=document.querySelector(`[data-nid="${id}"]`);if(el2){el2.scrollIntoView({block:'center'});el2.classList.add('flash')}}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#eye').hidden)closeEye()});
+function eyeSetVB(x,y,w){w=Math.max(110,Math.min(1000,w));if(w>=1000){x=0;y=0}else{x=Math.max(-60,Math.min(1060-w,x));y=Math.max(-60,Math.min(1060-w,y))}EYE.vb=[x,y,w,w];const svg=$('#eyesvg');svg.setAttribute('viewBox',EYE.vb.join(' '));const lab=w<560&&!EYE.sel;if(lab!==EYE.lab){EYE.lab=lab;svg.innerHTML=eyeSVG()}}
+function eyeZoomAt(f,sx,sy){cancelAnimationFrame(EYE.anim);const [x,y,w]=EYE.vb,nw=Math.max(110,Math.min(1000,w*f)),k=nw/w;eyeSetVB(sx-(sx-x)*k,sy-(sy-y)*k,nw)}
+(()=>{const svg=$('#eyesvg'),ptr=new Map();let dist=0,moved=0;
+  const pt=e=>{const r=svg.getBoundingClientRect(),[x,y,w]=EYE.vb;return [x+(e.clientX-r.left)/r.width*w,y+(e.clientY-r.top)/r.height*w]};
+  svg.addEventListener('wheel',e=>{e.preventDefault();const [sx,sy]=pt(e);eyeZoomAt(e.deltaY<0?.85:1/.85,sx,sy)},{passive:false});
+  svg.addEventListener('pointerdown',e=>{ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});if(ptr.size===1)moved=0;if(ptr.size===2){const [a,b]=[...ptr.values()];dist=Math.hypot(a.x-b.x,a.y-b.y)}});
+  svg.addEventListener('pointermove',e=>{const prev=ptr.get(e.pointerId);if(!prev)return;const r=svg.getBoundingClientRect(),sc=EYE.vb[2]/r.width;ptr.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(ptr.size===1){const dx=e.clientX-prev.x,dy=e.clientY-prev.y;moved+=Math.abs(dx)+Math.abs(dy);if(moved>6){cancelAnimationFrame(EYE.anim);try{svg.setPointerCapture(e.pointerId)}catch(err){}eyeSetVB(EYE.vb[0]-dx*sc,EYE.vb[1]-dy*sc,EYE.vb[2])}}
+    else if(ptr.size===2){const [a,b]=[...ptr.values()],nd=Math.hypot(a.x-b.x,a.y-b.y);if(dist&&nd){const [sx,sy]=pt({clientX:(a.x+b.x)/2,clientY:(a.y+b.y)/2});eyeZoomAt(dist/nd,sx,sy)}dist=nd;moved=99}});
+  const up=e=>{ptr.delete(e.pointerId);if(ptr.size<2)dist=0};svg.addEventListener('pointerup',up);svg.addEventListener('pointercancel',up);
+  svg.addEventListener('click',e=>{if(moved>6){e.stopPropagation();e.preventDefault();moved=0}},true)})();
 
 /* ---------- audio (generated, no files) ---------- */
 let AC=null,master=null,loop=null,noiseSrc=null,playing=null,vol=LS.get('zs-vol')??.6;
@@ -533,6 +561,36 @@ async function ytPlay(){const p=ytParse(S.ytm||'');if(!p){ytSet(false,'Paste a Y
   YTP._src=S.ytm}
 function ytPause(){if(YTP&&YTP.pauseVideo)YTP.pauseVideo();ytSet(false,'Paused')}
 
+/* ---------- Mini-Prüfung: mixed quiz from all notes ---------- */
+const bare=w=>String(w).replace(/\s*\(.*?\)/g,'').trim();
+const norm=s=>String(s).toLowerCase().replace(/[.!?,]/g,'').replace(/^(er|sie|es)\s+/,'').replace(/\s+/g,' ').trim();
+function roomOf(k){return k.startsWith('pin:')?(k==='pin:fragen'?'fragen':isSpeak(k.slice(4))?'pult':'pin'):k}
+function openNote(k,id){const room=roomOf(k);open(room);if(room==='pin'||room==='pult')pinOpen=k.slice(4);tab='notes';render();const el=id&&document.querySelector(`[data-nid="${id}"]`);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash')}}
+function exGen(){const G=[],notes=[];for(const [k,arr] of Object.entries(S.notes)){if(k==='vocab')continue;(arr||[]).forEach(n=>{if(n.t&&n.b)notes.push([k,n])})}
+  if(notes.length)G.push([3,()=>{const [k,n]=pick(notes);return {key:'n'+n.id,kind:'self',tag:(ST[roomOf(k)]||{}).n||'',q:`What do you remember about <b>${esc(n.t)}</b>?`,hint:'Think of the rule and one example, then check.',reveal:md(n.b),seen:n.id,ref:[k,n.id],label:n.t}}]);
+  if(S.vocab.length)G.push([2,()=>{const v=pick(S.vocab),de=Math.random()<.5;return {key:'v'+v.id+de,kind:'self',tag:'Wortschatz'+(v.topic?' · '+v.topic:''),q:`<span lang="${de?'de':'en'}" style="font-size:24px">${esc(de?v.de:v.en)}</span>`,hint:de?'What does it mean in English?':'How do you say it in German?',reveal:`<p style="font-size:20px;text-align:center"><b>${esc(de?v.en:v.de)}</b></p>`,seen:'vt:'+(v.topic||'Andere'),ref:['vocab'],label:v.de}}]);
+  const pre=Object.entries(S.preps).flatMap(([g,ws])=>(ws||[]).map(w=>[w,g]));if(pre.length)G.push([1,()=>{const [w,g]=pick(pre);return {key:'p'+w,kind:'mc',tag:'Präpositionen',q:`<b lang="de">${esc(w)}</b> takes which case?`,opts:[['akk','Akkusativ'],['dat','Dativ'],['wech','Wechsel: Wo? Dat · Wohin? Akk']],ans:g,room:'praep',ref:['praep'],label:w}}]);
+  const con=Object.entries(S.conn).flatMap(([g,ws])=>(ws||[]).map(w=>[w,g]));if(con.length)G.push([1,()=>{const [w,g]=pick(con);return {key:'c'+w,kind:'mc',tag:'Konnektoren',q:`After <b lang="de">${esc(bare(w))}</b>, where does the verb go?`,opts:[['koord','Stays in position 2'],['sub','Goes to the end'],['adv','Right after it, then the subject']],ans:g,room:'konn',ref:['konn'],label:bare(w)}}]);
+  const vb=S.verbs.filter(v=>v.inf&&v.p2);if(vb.length)G.push([1,()=>{const v=pick(vb),aux=v.aux==='sein'?'ist':'hat';return {key:'vb'+v.inf,kind:'type',tag:'Verben · Perfekt',q:`<b lang="de">${esc(v.inf)}</b> (${esc(v.en||'')}) in the Perfekt: er …`,ph:'e.g. hat gemacht',ans:[aux+' '+v.p2],room:'verben',ref:['verben'],label:v.inf}}]);
+  if(ADJ.length)G.push([1,()=>{const a=pick(ADJ);return {key:'a'+a[0],kind:'type',tag:'Fälle · Adjektivendung',q:`<span lang="de">${esc(a[0])}<b>___</b> ${esc(a[1])}</span><br><span class="hint">${esc(a[3])}</span>`,ph:'just the ending, e.g. en',ans:[a[2]],room:'faelle',ref:['faelle'],label:a[0]+'_ '+a[1]}}]);
+  return G}
+function exNext(){const E=P.ex,G=exGen(),tot=G.reduce((a,g)=>a+g[0],0);let q;
+  for(let t=0;t<10;t++){let r=Math.random()*tot,i=0;while(i<G.length-1&&r>=G[i][0]){r-=G[i][0];i++}q=G[i][1]();if(!E.recent.includes(q.key))break}
+  E.recent=[q.key,...E.recent].slice(0,15);E.q=q;E.shown=false;E.res=null;E.pickd=null;E.typed=''}
+function exGrade(ok){const E=P.ex,q=E.q,now=Date.now();E.n++;if(ok){E.score++;registerCorrect(1)}else E.miss.push({label:q.label||q.tag,tag:q.tag,ref:q.ref});if(q.seen)S.seen[q.seen]=now;if(q.room)S.prac[q.room]=now;save()}
+function examV(){const E=P.ex;
+  if(!E)return `<div class="game"><div class="big" style="font-size:28px;margin:0 0 6px">Mini-Prüfung</div><p>Questions from <b>all</b> your notes, mixed up: rules, words, prepositions, connectors, verbs and adjective endings.</p><p class="hint">It never runs out. Stop whenever you like and see what to look at again.</p><button class="btn main" data-act="exstart">Start</button>${S.lastExam?`<p class="hint" style="margin-top:14px">Last round: ${S.lastExam.score} of ${S.lastExam.n} right, ${new Date(S.lastExam.t).toLocaleDateString('en-GB',{day:'numeric',month:'long'})}</p>`:''}</div>`;
+  if(E.done){const pct=E.n?Math.round(E.score/E.n*100):0,miss=[...new Map(E.miss.map(m=>[m.label,m])).values()];
+    return `<div class="game"><div class="big" style="font-size:32px;margin:0">${E.score} / ${E.n}</div><p>${E.n?pct+'% right. '+(pct>=80?'Sehr gut!':pct>=50?'Gut gemacht!':'Every round helps. Weiter so!'):'No questions answered this time.'}</p></div>
+    ${miss.length?`<h3 style="margin:18px 0 8px">Worth another look</h3><div class="pins">${miss.map(m=>`<button class="pinc" data-act="exopen" data-k="${esc(m.ref[0])}" data-id="${esc(m.ref[1]||'')}">${esc(m.label)}<small>${esc(m.tag)}</small></button>`).join('')}</div>`:''}
+    <div class="row" style="margin-top:16px"><button class="btn main" data-act="exstart">New round</button></div>`}
+  const q=E.q;let body='';
+  if(q.kind==='self')body=E.shown?`<div class="note" style="text-align:left;margin-top:12px">${q.reveal}</div><div class="row" style="justify-content:center;margin-top:14px"><button class="btn" data-act="exself" data-v="0">Not yet</button><button class="btn main" data-act="exself" data-v="1">I knew it!</button></div>`:`<p class="hint">${q.hint}</p><button class="btn main" data-act="exreveal">Show answer</button>`;
+  if(q.kind==='mc')body=`<div class="row" style="justify-content:center;flex-wrap:wrap;gap:8px;margin-top:10px">${q.opts.map(([v,t])=>`<button class="btn ${E.res?(v===q.ans?'main':(E.pickd===v?'danger':'')):''}" data-act="exmc" data-v="${v}" ${E.res?'disabled':''}>${t}</button>`).join('')}</div>`;
+  if(q.kind==='type')body=`<div class="row" style="justify-content:center;margin-top:10px"><input type="text" id="exin" lang="de" autocomplete="off" autocapitalize="off" placeholder="${q.ph}" value="${esc(E.typed)}" ${E.res?'disabled':''} style="max-width:260px" aria-label="Your answer" onkeydown="if(event.key==='Enter'){event.preventDefault();var b=document.querySelector('[data-act=extype]');b&&b.click()}"><button class="btn main" data-act="extype" ${E.res?'disabled':''}>Check</button></div>`;
+  if(E.res)body+=`<p style="margin-top:12px;font-weight:700">${E.res==='ok'?'✓ Richtig!':'✗ Answer: <span lang="de">'+esc(q.kind==='mc'?q.opts.find(o=>o[0]===q.ans)[1]:q.ans[0])+'</span>'}</p><button class="btn main" data-act="exnext">Next →</button>`;
+  return `<div class="row" style="justify-content:space-between;margin-bottom:8px"><span class="hint" style="margin:0">Question ${E.res?E.n:E.n+1} · ${E.score} right so far</span><button class="btn sm" data-act="exend">End exam</button></div><div class="game"><span class="hint">${esc(q.tag)}</span><div style="font-size:20px;margin:6px 0 10px">${q.q}</div>${body}</div>`}
+
 /* ---------- panel ---------- */
 let cur=null,tab='notes',editing=null,P={},JE=null,pinOpen=null,lastFocus=null;
 function open(k){lastFocus=document.activeElement;cur=k;tab=ST[k].game?'notes':'main';editing=null;P={};pinOpen=null;if(k==='tagebuch')JE=JE||newJE();$('#ov').hidden=false;render();$('#pclose').focus()}
@@ -540,7 +598,7 @@ function close(){$('#ov').hidden=true;cur=null;$('#closeup').classList.remove('o
 function newJE(){const d=LS.get('zs-draft');return d&&d.text?d:{id:null,date:today(),prompt:pick(PROMPTS),text:''}}
 function render(){const s=ST[cur];$('#part').innerHTML=ART_IMG[cur]?`<img src="${ART_IMG[cur]}" alt="">`:(cur==='vocab'?'<div class="potion" aria-hidden="true"></div>':'');$('#pobj').textContent=s.obj;$('#ptitle').textContent=s.n;$('#pen').textContent=s.en;
   $('#ptabs').innerHTML=s.game?(s.tabs||[['notes','Notes'],['ueben','Practice']]).map(([k,t])=>`<button data-tab="${k}" class="${tab===k?'on':''}">${t}</button>`).join(''):'';
-  const f={satzbau:satzbauV,faelle:faelleV,praep:praepV,verben:verbenV,konn:konnV,tagebuch:journalV,notizen:notizenV,vocab:vocabV,fragen:()=>notesV('pin:fragen')+'<p class="hint">More ways to ask and suggest are on the Pult (the desk) under Bitten &amp; Vorschläge.</p>',pin:pinV,pult:pultV,platten:platV,pflanze:plantV}[cur];$('#pbody').innerHTML=f()}
+  const f={satzbau:satzbauV,faelle:faelleV,praep:praepV,verben:verbenV,konn:konnV,tagebuch:journalV,notizen:notizenV,vocab:vocabV,fragen:()=>notesV('pin:fragen')+'<p class="hint">More ways to ask and suggest are on the Pult (the desk) under Bitten &amp; Vorschläge.</p>',pin:pinV,pult:pultV,pruefung:examV,platten:platV,pflanze:plantV}[cur];$('#pbody').innerHTML=f()}
 
 function notesV(key){const arr=S.notes[key]||(S.notes[key]=[]);return arr.map(n=>editing===n.id?`<article class="note"><input type="text" id="et" value="${esc(n.t)}" placeholder="Title" aria-label="Title"><p class="hint">**bold** · ==highlight== · start a line with "- " for a list · "|a|b" for a table</p><textarea id="eb" rows="7" lang="de" aria-label="Note">${esc(n.b)}</textarea><div class="na"><button class="btn danger" data-act="delnote" data-id="${n.id}">Delete</button><button class="btn" data-act="cancel" data-id="${n.id}">Cancel</button><button class="btn main" data-act="savenote" data-id="${n.id}" data-key="${key}">Save</button></div></article>`:`<article class="note" data-nid="${n.id}"><h3>${esc(n.t)||'<i>Untitled</i>'}</h3>${md(n.b)}<div class="na"><button class="btn sm" data-act="edit" data-id="${n.id}">Edit</button></div></article>`).join('')+`<button class="btn main" data-act="addnote" data-key="${key}">+ Add a note</button>`}
 function groupsV(list,G){return `<div class="groups">${Object.entries(G).map(([g,[t,sub]])=>`<div class="grp c-${g}"><h3>${t}</h3><p>${sub}</p>${S[list][g].map((w,i)=>`<span class="chip">${esc(w)}<button data-act="rmchip" data-list="${list}" data-g="${g}" data-i="${i}" aria-label="Remove ${esc(w)}">×</button></span>`).join('')}<div class="row"><input type="text" data-addin="${list}-${g}" placeholder="Add a word…" aria-label="${t}: add a word"><button class="btn sm" data-act="addchip" data-list="${list}" data-g="${g}">+</button></div></div>`).join('')}</div>`}
@@ -605,17 +663,36 @@ function verbenV(){if(tab==='notes')return notesV('verben');if(P.cur==null||!S.v
 
 /* Tagebuch */
 function connFound(t){const words=new Set((t.toLowerCase().match(/[a-zäöüß]+/g)||[]));const out=[];for(const [g,a] of Object.entries(S.conn))for(const c of a){const base=c.replace(/\(.*?\)/g,'').trim().split(/[\s…]+/)[0].toLowerCase();if(base&&words.has(base)&&!out.some(o=>o.w===base))out.push({w:base,g})}return out}
-function jStats(t){const w=(t.match(/\S+/g)||[]).length,c=connFound(t);return `<span><b>${w}</b> words</span>${c.length?'<span>Connectors used:</span>'+c.map(o=>`<span class="chip c-${o.g}" style="padding-right:10px">${esc(o.w)}</span>`).join(''):'<span>Tip: join sentences with weil, aber, deshalb …</span>'}`}
-function journalV(){const e=JE,list=[...J].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.created||0)-(a.created||0));
+function jStats(t){const w=(t.match(/\S+/g)||[]).length,c=connFound(t);return `<span><b>${w}</b> words</span>${JE&&JE.ch?`<span>${chkDone(JE.ch,t)?'<b>✓ Challenge done!</b>':'Challenge: not yet'}</span>`:''}${c.length?'<span>Connectors used:</span>'+c.map(o=>`<span class="chip c-${o.g}" style="padding-right:10px">${esc(o.w)}</span>`).join(''):'<span>Tip: join sentences with weil, aber, deshalb …</span>'}`}
+function journalV(){if(JE.ch===undefined)JE.ch=jChallenge();const e=JE,list=[...J].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.created||0)-(a.created||0));
   return `<div class="row"><input type="date" id="jdate" value="${esc(e.date)}" aria-label="Date" style="max-width:200px"><span class="hint" style="margin:0">${e.id?'Editing an entry':'New entry'}</span></div>
   ${e.prompt?`<div class="prompt"><b>${esc(e.prompt[0])}</b><br><span class="hint">${esc(e.prompt[1])}</span></div>`:'<div class="prompt"><span class="hint">Free writing, no question.</span></div>'}
   <div class="row" style="margin-bottom:8px"><button class="btn sm" data-act="jprompt">Different question</button><button class="btn sm" data-act="jnoprompt">No question</button></div>
+  <div class="prompt">${e.ch?`<b>✨ Challenge: ${esc(e.ch.t)}</b><br><span class="hint">${esc(e.ch.h)}</span>`:'<span class="hint">No grammar challenge this time.</span>'}</div>
+  <div class="row" style="margin-bottom:8px"><button class="btn sm" data-act="jch">Different challenge</button>${e.ch?'<button class="btn sm" data-act="jnoch">No challenge</button>':''}</div>
   <textarea id="jtext" lang="de" spellcheck="true" rows="8" placeholder="Heute habe ich …" aria-label="Journal entry">${esc(e.text)}</textarea>
   <div class="jstats" id="jstats">${jStats(e.text)}</div>
   <div class="row"><button class="btn main" data-act="jsave">${e.id?'Save changes':'Save entry'}</button>${e.id||e.text?'<button class="btn" data-act="jnew">Start a new entry</button>':''}</div>
-  <h3 style="margin:26px 0 10px">Your entries (${J.length})</h3>${list.length?list.map(x=>`<article class="entry"><h3>${new Date(x.date+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h3>${x.prompt?`<p class="pr">${esc(x.prompt[0])}</p>`:''}<p>${esc(x.text)}</p><div class="na"><button class="btn sm" data-act="jcopy" data-id="${x.id}">Copy</button><button class="btn sm" data-act="jedit" data-id="${x.id}">Edit</button><button class="btn sm danger" data-act="jdel" data-id="${x.id}">Delete</button></div></article>`).join(''):'<p class="hint">No entries yet. One or two sentences is plenty to start.</p>'}
-  <p class="hint">Tip: tap Copy and paste an entry to Claude if you want corrections.</p>`}
-async function jSave(){const t=$('#jtext').value.trim();if(!t)return;const isNew=!JE.id,id=JE.id||'e'+Date.now(),old=J.find(x=>x.id===id);const entry={date:$('#jdate').value||today(),prompt:JE.prompt||null,text:t,created:old?old.created:Date.now(),updated:Date.now()};
+  <h3 style="margin:26px 0 10px">Your entries (${J.length})</h3>${list.length?list.map(x=>`<article class="entry"><h3>${new Date(x.date+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h3>${x.prompt?`<p class="pr">${esc(x.prompt[0])}</p>`:''}<p>${esc(x.text)}</p>${x.ch?`<p class="pr">Challenge: ${esc(x.ch.t)}${chkDone(x.ch,x.text)?' ✓':''}</p>`:''}${x.corr?`<div class="corr"><b>Correction</b>${corrHTML(x.corr)}</div>`:''}${P.jai===x.id?corrBox(x):''}<div class="na"><button class="btn sm" data-act="jai" data-id="${x.id}">${x.corr?'Correct again':'Get a correction'}</button>${x.corr?`<button class="btn sm danger" data-act="jcorrdel" data-id="${x.id}">Remove correction</button>`:''}<button class="btn sm" data-act="jcopy" data-id="${x.id}">Copy</button><button class="btn sm" data-act="jedit" data-id="${x.id}">Edit</button><button class="btn sm danger" data-act="jdel" data-id="${x.id}">Delete</button></div></article>`).join(''):'<p class="hint">No entries yet. One or two sentences is plenty to start.</p>'}
+  <p class="hint">Tip: <b>Get a correction</b> copies your entry with a request for Claude. Paste it into Claude, then paste the answer back here.</p>`}
+/* journal: grammar challenges + corrections via Claude (copy / paste, no API key needed) */
+const reEsc=w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function jChallenge(){const C=[],sub=S.conn.sub.map(bare),adv=S.conn.adv.filter(w=>!w.includes('…')).map(bare);
+  const fs=['weil','dass','obwohl','wenn','als','nachdem','damit','ob','bevor','während','sobald','falls'].filter(w=>sub.includes(w)),w1=pick(fs.length?fs:sub);if(w1)C.push({t:`Use the connector „${w1}“`,h:'It starts a Nebensatz, so the verb goes to the end.',w:[w1]});
+  const fa=['deshalb','trotzdem','außerdem','danach','deswegen','allerdings','dann','also','zuerst','schließlich'].filter(w=>adv.includes(w)),w2=pick(fa.length?fa:adv);if(w2)C.push({t:`Join two sentences with „${w2}“`,h:'The verb comes right after it, then the subject.',w:[w2]});
+  const wp=pick(S.preps.wech||[]);if(wp)C.push({t:`Use „${wp}“ (Wechselpräposition)`,h:'Wo? → Dativ · Wohin? → Akkusativ.',w:[wp]});
+  const sv=S.verbs.filter(v=>v.aux==='sein'&&v.p2);if(sv.length){const v=pick(sv);C.push({t:`Write a sentence in Perfekt with „${v.inf}“`,h:`It goes with sein: … ist … ${v.p2}.`,w:[v.p2]})}
+  C.push({t:'Use a Relativsatz',h:'…, der / die / das … with the verb at the end. Das ist die Frau, die …',re:',\\s*(mit |von |zu |bei |auf |in |an )?(der|die|das|den|dem|denen|deren|dessen)\\s'});
+  C.push({t:'Use a Modalverb',h:'Modal verb in position 2, the other verb at the end: Ich muss heute arbeiten.',re:'\\b(muss|musst|müssen|kann|kannst|können|darf|darfst|dürfen|will|willst|wollen|soll|sollst|sollen|möchte|möchtest|möchten)\\b'});
+  if(S.vocab.length){const v=pick(S.vocab),key=v.de.replace(/^(der|die|das|sich|ein|eine)\s+/i,'').split(/[\s\/(…,]/)[0];if(key.length>2)C.push({t:`Use a word from your jar: „${v.de}“`,h:v.en,w:[key]})}
+  return pick(C)}
+function chkDone(ch,t){if(!ch||!t)return false;if(ch.re)return new RegExp(ch.re,'i').test(t);const s=t.toLowerCase();return (ch.w||[]).some(w=>w&&new RegExp('(^|[^a-zäöüß])'+reEsc(w.toLowerCase())+'([^a-zäöüß]|$)').test(s))}
+function corrHTML(src){return md(src).replace(/\[\[(.+?)\]\]/g,(m,t)=>`<button class="btn sm" data-act="jnote" data-t="${t}">📖 ${t}</button>`)}
+function corrBox(x){return `<div class="corrbox"><p class="hint">${P.jaiOk?'Copied ✓ Now paste it into Claude (claude.ai or the Claude app), then paste Claude\'s answer below.':'Copy this text, paste it into Claude, then paste Claude\'s answer below.'}</p>${P.jaiOk?'':`<textarea readonly rows="5" onclick="this.select()">${esc(corrPrompt(x))}</textarea>`}<textarea id="jcorr" placeholder="Paste Claude's correction here" aria-label="Correction"></textarea><div class="row"><button class="btn main" data-act="jcorrsave" data-id="${x.id}">Save correction</button><button class="btn" data-act="jcorrx">Cancel</button></div></div>`}
+function corrPrompt(x){const g=[];for(const [k,arr] of Object.entries(S.notes)){if(k==='vocab'||!(arr||[]).length)continue;const name=k.startsWith('pin:')?((S.pins.find(p=>'pin:'+p.id===k)||{}).title||k):(ST[k]||{}).n||k;const ts=arr.filter(n=>n.t).map(n=>n.t);if(ts.length)g.push(name+': '+ts.join(' | '))}
+  return `Please correct my German journal entry. I'm learning German (around B1).\n\n1. Write my text again, corrected, with each change in **bold**.\n2. Then list each mistake on its own line starting with "- ": what I wrote → the correct version, and a short, simple explanation in English.\n3. If one of my notes (titles below) explains the rule, put its exact title in double square brackets at the end of that line, like [[Nebensatz · subordinate clause]].\nUse only **bold** and lines starting with "- ". No headings, tables or numbered lists.\n\nMy note titles:\n${g.join('\n')}\n\nMy entry${x.prompt?' (question: '+x.prompt[0]+')':''}${x.ch?' (challenge: '+x.ch.t+')':''}:\n${x.text}`}
+function findNote(t){const q=t.toLowerCase().split(' · ')[0].trim();let hit=null;for(const [k,arr] of Object.entries(S.notes)){if(k==='vocab')continue;for(const n of arr||[]){const nt=(n.t||'').toLowerCase().split(' · ')[0].trim();if(nt===q)return [k,n.id];if(!hit&&nt&&(nt.includes(q)||q.includes(nt)))hit=[k,n.id]}}return hit}
+async function jSave(){const t=$('#jtext').value.trim();if(!t)return;const isNew=!JE.id,id=JE.id||'e'+Date.now(),old=J.find(x=>x.id===id);const entry={date:$('#jdate').value||today(),prompt:JE.prompt||null,ch:JE.ch||null,text:t,created:old?old.created:Date.now(),updated:Date.now(),...(old&&old.corr?{corr:old.corr}:{})};
   J=[...J.filter(x=>x.id!==id),{id,...entry}];LS.set('zs-journal',J);LS.set('zs-draft',null);JE={id:null,date:today(),prompt:pick(PROMPTS),text:''};if(isNew)addLeaves(2);render();
   if(jCol){try{await jCol.doc(id).set(entry);status('Saved to your account ✓')}catch(e){status('Entry saved on this device only')}}}
 async function jDel(id){J=J.filter(x=>x.id!==id);LS.set('zs-journal',J);render();if(jCol){try{await jCol.doc(id).delete()}catch(e){}}}
@@ -645,7 +722,8 @@ function platV(){const mine=S.myrecs.map((r,i)=>`<div class="recw"><a class="rec
 const okUrl=u=>/^https:\/\/[^\s"<>]+$/i.test(u);
 /* Pflanze */
 function plantV(){const toFlower=10-S.leaves%10;return `<div class="game" style="display:grid;grid-template-columns:minmax(0,160px) minmax(0,1fr);gap:16px;align-items:center;text-align:left"><img src="img/plant.jpg" alt="" style="width:100%;border-radius:12px;filter:saturate(${Math.min(1.3,.5+S.leaves/30)})"><div><div class="big" style="margin:0 0 8px">${S.leaves} ${S.leaves===1?'Blatt':'Blätter'}</div><div class="prog" aria-hidden="true"><i style="width:${(S.leaves%10)*10}%"></i></div><p class="hint">${toFlower} more ${toFlower===1?'leaf':'leaves'} until the next blossom.</p></div></div>
-  <p>Your plant grows with you: <b>+2</b> for each journal entry, <b>+1</b> for each new note, <b>+1</b> for every 5 correct answers when practising.</p><p class="hint">No streaks and nothing to lose. If you take a week off, it just waits for you.</p>`}
+  <p>Your plant grows with you: <b>+2</b> for each journal entry, <b>+1</b> for each new note, <b>+1</b> for every 5 correct answers when practising.</p><p class="hint">No streaks and nothing to lose. If you take a week off, it just waits for you.</p>
+  <div class="ytbox"><b>Back up your notes and journal</b><p class="hint" style="margin:4px 0 10px">Everything lives in this browser. Clearing your browsing data would delete it, so download a backup now and then (for example into OneDrive). A backup also moves everything to another device.</p><div class="row"><button class="btn main" data-act="bkexport">Download backup</button><label class="btn" style="cursor:pointer">Restore from a backup<input type="file" id="bkfile" accept=".json,application/json" hidden></label></div><p class="hint" id="bkmsg" aria-live="polite" style="margin:6px 0 0">${S.lastBackup?'Last backup: '+new Date(S.lastBackup).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'No backup yet.'}</p></div>`}
 
 /* ---------- events ---------- */
 $('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(b)hit(b.dataset.open,b.dataset.i)});
@@ -657,6 +735,8 @@ $('#ptabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');
 $('#pbody').addEventListener('input',e=>{if(e.target.id==='jtext'){JE.text=e.target.value;$('#jstats').innerHTML=jStats(JE.text);LS.set('zs-draft',JE)}else if(e.target.id==='jdate'){JE.date=e.target.value}else if(e.target.id==='vsearch'){P.vs=e.target.value;$('#vlist').innerHTML=vListHTML()}else if(e.target.id==='vol'){vol=+e.target.value;LS.set('zs-vol',vol);if(master)master.gain.value=vol;if(YTP&&YTP.setVolume)YTP.setVolume(Math.round(vol*100))}else if(e.target.dataset.k&&P.val){P.val[e.target.dataset.k]=e.target.value}});
 $('#pbody').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('mb')){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));return}if(e.key!=='Enter'||e.target.tagName!=='INPUT')return;const map={newsent:'addsent',newpin:'addpin',pintitle:'pinrename',vde:'vadd',ven:'vadd',vtop:'vadd'};const a=map[e.target.id]||(e.target.dataset.addin&&'addchip');if(a){e.preventDefault();const b=e.target.dataset.addin?e.target.parentElement.querySelector('[data-act=addchip]'):$(`[data-act=${a}]`);b&&b.click()}});
 function armed(b){if(b.dataset.armed)return true;b.dataset.armed=1;const t=b.textContent;b.textContent='Sure?';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=t}},3000);return false}
+$('#pbody').addEventListener('change',e=>{if(e.target.id!=='bkfile'||!e.target.files[0])return;const f=e.target.files[0],msg=$('#bkmsg');f.text().then(t=>{let d;try{d=JSON.parse(t)}catch(err){d=null}if(!d||d.app!=='zauberschule'||!d.state){msg.textContent='That file is not a Zauberschule backup.';return}
+  if(!confirm('Replace everything on this device with the backup from '+new Date(d.saved).toLocaleString('en-GB')+'?'))return;S=merge(d.state);J=Array.isArray(d.journal)?d.journal:[];LS.set('zs-journal',J);save();location.reload()})});
 $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act,d=b.dataset;
   const notesKey=()=>(cur==='pin'||cur==='pult')?'pin:'+pinOpen:cur==='fragen'?'pin:fragen':cur;
   switch(a){
@@ -693,7 +773,7 @@ $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
   case 'jnoprompt':JE.prompt=null;JE.text=$('#jtext').value;break;
   case 'jsave':jSave();return;
   case 'jnew':JE={id:null,date:today(),prompt:pick(PROMPTS),text:''};LS.set('zs-draft',null);break;
-  case 'jedit':{const x=J.find(y=>y.id===d.id);if(!x)return;JE={id:x.id,date:x.date,prompt:x.prompt,text:x.text};render();$('#pbody').scrollTop=0;$('.sheet').scrollTop=0;$('#jtext').focus();return}
+  case 'jedit':{const x=J.find(y=>y.id===d.id);if(!x)return;JE={id:x.id,date:x.date,prompt:x.prompt,ch:x.ch||null,text:x.text};render();$('#pbody').scrollTop=0;$('.sheet').scrollTop=0;$('#jtext').focus();return}
   case 'jdel':if(!armed(b))return;jDel(d.id);return;
   case 'jcopy':{const x=J.find(y=>y.id===d.id);if(!x)return;try{navigator.clipboard.writeText(x.text).then(()=>{b.textContent='Copied ✓'},()=>{b.textContent='Couldn\'t copy'})}catch(err){b.textContent='Couldn\'t copy'}return}
   case 'pinopen':pinOpen=d.id;editing=null;break;
@@ -724,8 +804,32 @@ $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
   case 'savelinks':{P.yt=1;let bad=0;for(const k of Object.keys(MOODS)){const v=$('#lk-'+k).value.trim();if(v&&!okUrl(v)){bad++;continue}if(v)S.links[k]=v;else delete S.links[k]}save();render();const m=$('#ytmsg');if(m)m.textContent=bad?'Some links were skipped: they need to start with https://':'Saved ✓';return}
   case 'addmyrec':{P.yt=1;const n=$('#mrn').value.trim(),u=$('#mrl').value.trim();if(!n||!okUrl(u)){$('#ytmsg').textContent='Add a name and a link that starts with https://';return}S.myrecs.push({n,url:u,mood:$('#mrm').value});save();break}
   case 'rmmyrec':P.yt=1;S.myrecs.splice(+d.i,1);save();break;
+  case 'exstart':P.ex={n:0,score:0,miss:[],recent:[]};exNext();break;
+  case 'exreveal':P.ex.shown=true;break;
+  case 'exself':exGrade(d.v==='1');exNext();break;
+  case 'exmc':{const E=P.ex;if(E.res)return;E.pickd=d.v;const ok=d.v===E.q.ans;E.res=ok?'ok':'no';exGrade(ok);render();const nb=document.querySelector('[data-act=exnext]');nb&&nb.focus();return}
+  case 'extype':{const E=P.ex;if(E.res)return;const v=$('#exin').value;if(!v.trim())return;E.typed=v;const ok=E.q.ans.some(a=>norm(a)===norm(v));E.res=ok?'ok':'no';exGrade(ok);render();const nb=document.querySelector('[data-act=exnext]');nb&&nb.focus();return}
+  case 'exnext':{exNext();render();const i=$('#exin');i&&i.focus();return}
+  case 'exend':{const E=P.ex;E.done=true;if(E.n){S.lastExam={t:Date.now(),score:E.score,n:E.n};save()}break}
+  case 'exopen':openNote(d.k,d.id);return;
+  case 'jch':{let c,t=0;do{c=jChallenge()}while(t++<6&&JE.ch&&c&&c.t===JE.ch.t);JE.ch=c;JE.text=$('#jtext').value;break}
+  case 'jnoch':JE.ch=null;JE.text=$('#jtext').value;break;
+  case 'jai':{const x=J.find(y=>y.id===d.id);if(!x)return;P.jai=x.id;P.jaiOk=false;const txt=corrPrompt(x);const done=ok=>{P.jaiOk=ok;render();const t=$('#jcorr');t&&t.focus()};try{navigator.clipboard.writeText(txt).then(()=>done(true),()=>done(false))}catch(err){done(false)}return}
+  case 'jcorrx':P.jai=null;break;
+  case 'jcorrsave':{const x=J.find(y=>y.id===d.id),v=$('#jcorr').value.trim();if(!x||!v)return;x.corr=v;J=[...J];LS.set('zs-journal',J);if(jCol){const {id:eid,...rest}=x;jCol.doc(eid).set(rest).catch(()=>{})}P.jai=null;break}
+  case 'jcorrdel':{if(!armed(b))return;const x=J.find(y=>y.id===d.id);if(!x)return;delete x.corr;LS.set('zs-journal',J);if(jCol){const {id:eid,...rest}=x;jCol.doc(eid).set(rest).catch(()=>{})}break}
+  case 'jnote':{const h=findNote(d.t);if(h){openNote(h[0],h[1]);return}b.textContent='Note not found';return}
+  case 'bkexport':{S.lastBackup=Date.now();save();const data={app:'zauberschule',v:1,saved:new Date().toISOString(),state:S,journal:J},a2=document.createElement('a');a2.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,1)],{type:'application/json'}));a2.download='zauberschule-backup-'+today()+'.json';document.body.appendChild(a2);a2.click();setTimeout(()=>{URL.revokeObjectURL(a2.href);a2.remove()},1000);break}
   }
   render()});
+
+/* ---------- bottom bar: drag or wheel to scroll ---------- */
+(()=>{const c=$('#chips');let down=false,sx=0,sl=0,moved=false;
+  c.addEventListener('pointerdown',e=>{if(e.pointerType!=='mouse'||e.button!==0)return;down=true;moved=false;sx=e.clientX;sl=c.scrollLeft});
+  window.addEventListener('pointermove',e=>{if(!down)return;const dx=e.clientX-sx;if(!moved&&Math.abs(dx)>5){moved=true;c.classList.add('drag')}if(moved)c.scrollLeft=sl-dx});
+  window.addEventListener('pointerup',()=>{if(!down)return;down=false;setTimeout(()=>c.classList.remove('drag'),0)});
+  c.addEventListener('click',e=>{if(moved){e.stopPropagation();e.preventDefault();moved=false}},true);
+  c.addEventListener('wheel',e=>{if(Math.abs(e.deltaY)>Math.abs(e.deltaX)&&c.scrollWidth>c.clientWidth){c.scrollLeft+=e.deltaY;e.preventDefault()}},{passive:false})})();
 
 /* ---------- boot ---------- */
 if(S._mig)save();buildRoom();status('Saving in this browser');
