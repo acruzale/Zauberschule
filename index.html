@@ -112,7 +112,9 @@ textarea{min-height:120px;resize:vertical;line-height:1.6}
 .rec small{font-family:Nunito,sans-serif;font-size:14px;opacity:.9}.rec.on{outline:3px solid var(--gold);outline-offset:3px}
 .rec svg{position:absolute;inset:0;width:100%;height:100%}.rec span{position:relative}
 .yt{font-weight:700;color:#f2b98a;text-decoration:none;padding:6px 2px}
-.ytbox{padding:12px 16px;margin-top:18px}.ytbox summary{cursor:pointer;min-height:32px}
+.ytbox{padding:12px 16px;margin-top:18px}
+.ytbox.ytm{margin:0 0 16px}
+#ytp{position:fixed;left:0;bottom:0;width:200px;height:200px;opacity:0;pointer-events:none;z-index:-1;overflow:hidden}.ytbox summary{cursor:pointer;min-height:32px}
 .jstats{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:14px;color:var(--soft);margin:8px 0 12px}
 .entry{padding:12px 16px;margin-bottom:10px}.entry h3{font-size:20px}.entry p{white-space:pre-wrap;margin:6px 0}.entry .pr{font-size:14px;margin:2px 0}
 .prompt{padding:10px 14px;margin:10px 0}.prompt b{font-family:'Cormorant Garamond',serif;font-size:23px}
@@ -505,6 +507,28 @@ function playMusic(k){stopMusic();try{AC=AC||new (window.AudioContext||window.we
   noiseSrc=AC.createBufferSource();noiseSrc.buffer=buf;noiseSrc.loop=true;const ng=AC.createGain();ng.gain.value=M.rain?.5:.35;const nf=AC.createBiquadFilter();nf.type=M.rain?'lowpass':'bandpass';nf.frequency.value=M.rain?1800:2500;noiseSrc.connect(nf);nf.connect(ng);ng.connect(master);noiseSrc.start();
   playing=k;document.body.classList.add('playing')}catch(e){playing=null}}
 
+/* ---------- YouTube sound only (hidden player, link saved per device) ---------- */
+let YTP=null,ytReady=null,ytOn=false,ytMsg='';
+function ytParse(u){try{const x=new URL(u.trim());if(!/(^|\.)youtube\.com$|(^|\.)youtu\.be$|(^|\.)youtube-nocookie\.com$/.test(x.hostname))return null;
+  let v=x.searchParams.get('v');const list=x.searchParams.get('list');
+  if(x.hostname.endsWith('youtu.be'))v=x.pathname.slice(1).split('/')[0];
+  const m=x.pathname.match(/\/(?:embed|shorts|live)\/([\w-]{11})/);if(m)v=m[1];
+  v=v&&/^[\w-]{11}$/.test(v)?v:null;return v||list?{v,list}:null}catch(e){return null}}
+function ytLoadApi(){if(ytReady)return ytReady;ytReady=new Promise(res=>{window.onYouTubeIframeAPIReady=res;const s=document.createElement('script');s.src='https://www.youtube.com/iframe_api';s.onerror=()=>{ytReady=null;ytSet(false,'Could not reach YouTube. Check your internet.')};document.head.appendChild(s)});return ytReady}
+function ytSet(on,msg){ytOn=on;ytMsg=msg||'';document.body.classList.toggle('ytplaying',on);const b=$('#ytbtn');if(b){b.textContent=on?'❚❚ Pause':'▶ Play';b.setAttribute('aria-pressed',on)}const m=$('#ytstate');if(m)m.textContent=ytMsg}
+async function ytPlay(){const p=ytParse(S.ytm||'');if(!p){ytSet(false,'Paste a YouTube link first, then press Save.');return}
+  stopMusic();ytSet(true,'Loading…');await ytLoadApi();
+  if(YTP&&YTP._src===S.ytm){YTP.setVolume(Math.round(vol*100));YTP.playVideo();return}
+  if(YTP){try{YTP.destroy()}catch(e){}YTP=null}
+  let host=$('#ytp');if(!host){host=document.createElement('div');host.id='ytp';host.setAttribute('aria-hidden','true');document.body.appendChild(host)}host.innerHTML='<div id="ytpi"></div>';
+  const pv={autoplay:1,playsinline:1,controls:0,disablekb:1};if(p.list){pv.listType='playlist';pv.list=p.list;pv.loop=1}
+  YTP=new YT.Player('ytpi',{width:200,height:200,videoId:p.v||undefined,playerVars:pv,events:{
+    onReady:e=>{e.target.setVolume(Math.round(vol*100));e.target.playVideo()},
+    onStateChange:e=>{const st=e.data;if(st===1)ytSet(true,'Playing ♪');else if(st===2)ytSet(false,'Paused');else if(st===0){if(!p.list){e.target.seekTo(0);e.target.playVideo()}}},
+    onError:e=>{ytSet(false,[101,150].includes(e.data)?'This video doesn\'t allow playing outside YouTube. Try another link.':'YouTube could not play this link.')}}});
+  YTP._src=S.ytm}
+function ytPause(){if(YTP&&YTP.pauseVideo)YTP.pauseVideo();ytSet(false,'Paused')}
+
 /* ---------- panel ---------- */
 let cur=null,tab='notes',editing=null,P={},JE=null,pinOpen=null,lastFocus=null;
 function open(k){lastFocus=document.activeElement;cur=k;tab=ST[k].game?'notes':'main';editing=null;P={};pinOpen=null;if(k==='tagebuch')JE=JE||newJE();$('#ov').hidden=false;render();$('#pclose').focus()}
@@ -599,10 +623,13 @@ function pinV(){if(pinOpen){const p=S.pins.find(x=>x.id===pinOpen);if(!p){pinOpe
 function svgMotif(k){return {morgen:'<circle cx="70%" cy="34%" r="16%" fill="#fff3c9" opacity=".9"/><rect x="0" y="66%" width="100%" height="34%" fill="#000" opacity=".08"/>',herbst:'<g fill="#ffd08a" opacity=".85"><ellipse cx="72%" cy="28%" rx="9%" ry="5%" transform="rotate(30)"/><ellipse cx="55%" cy="40%" rx="7%" ry="4%"/><ellipse cx="82%" cy="48%" rx="6%" ry="3.5%"/></g>',regen:'<g stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"><path d="M40 20l-6 18M80 30l-6 18M120 14l-6 18M150 44l-6 18M60 60l-6 18M110 70l-6 18"/></g>',nacht:'<circle cx="72%" cy="30%" r="13%" fill="#f3ead2"/><circle cx="78%" cy="26%" r="11%" fill="#2a2d55"/><g fill="#fff"><circle cx="25%" cy="20%" r="1.5"/><circle cx="40%" cy="35%" r="1"/><circle cx="55%" cy="15%" r="1.3"/></g>'}[k]}
 function recCard(k,m){const url=S.links[k];return `<div class="recw"><button class="rec ${S.mood===k?'on':''}" data-act="rec" data-m="${k}" style="background:${m.bg}" aria-pressed="${playing===k}"><svg aria-hidden="true">${svgMotif(k)}</svg><span>${m.n}<br><small>${m.en}${playing===k?' · café music playing ♪':''}</small></span></button>${url?`<a class="yt" href="${esc(url)}" target="_blank" rel="noopener">▶ Open my playlist ↗</a>`:''}</div>`}
 function platV(){const mine=S.myrecs.map((r,i)=>`<div class="recw"><a class="rec" href="${esc(r.url)}" target="_blank" rel="noopener" data-act="myrec" data-m="${r.mood}" style="background:${MOODS[r.mood].bg}"><svg aria-hidden="true">${svgMotif(r.mood)}</svg><span>${esc(r.n)}<br><small>Opens in a new tab ↗</small></span></a></div>`).join('');
-  return `<p class="hint">Tap a record to change the light in the café and play soft café music. Records with a playlist link also open your music.</p><div class="recs">${Object.entries(MOODS).map(([k,m])=>recCard(k,m)).join('')}${mine}</div>
+  return `<div class="ytbox ytm"><b>Background music from YouTube</b><p class="hint" style="margin:4px 0 10px">Paste a YouTube video or playlist link. Only the sound plays, and the link is remembered on this device. Tap a record below to change the light; while YouTube plays, the café music stays off.</p>
+  <div class="row"><input type="text" inputmode="url" id="ytin" value="${esc(S.ytm||'')}" placeholder="https://www.youtube.com/watch?v=…" aria-label="YouTube link" style="flex:1;min-width:0"><button class="btn" data-act="ytsave">Save</button><button class="btn main" id="ytbtn" data-act="ytplay" aria-pressed="${ytOn}">${ytOn?'❚❚ Pause':'▶ Play'}</button></div>
+  <p class="hint" id="ytstate" aria-live="polite" style="margin:6px 0 0">${esc(ytMsg)}</p></div>
+  <p class="hint">Tap a record to change the light in the café and play soft café music. Records with a playlist link also open your music.</p><div class="recs">${Object.entries(MOODS).map(([k,m])=>recCard(k,m)).join('')}${mine}</div>
   <div class="row" style="margin-top:18px"><label for="vol" class="hint" style="margin:0">Volume</label><input type="range" id="vol" min="0" max="1" step=".05" value="${vol}" style="flex:1"><button class="btn" data-act="stop" ${playing?'':'disabled'}>Stop café music</button></div>
-  <details class="ytbox" ${P.yt||!(Object.values(S.links).some(Boolean)||S.myrecs.length)?'open':''}><summary><b>Connect your YouTube playlists</b></summary>
-  <p class="hint">YouTube can't play inside the café itself, but each record can open one of your playlists in a new tab, already signed in to your account, so it keeps playing while you study. In YouTube or YouTube Music, open a playlist, tap <b>Share → Copy link</b>, and paste it here.</p>
+  <details class="ytbox" ${P.yt?'open':''}><summary><b>Open playlists in a new tab</b></summary>
+  <p class="hint">For YouTube Music playlists, or anything that won't play above: each record can open a playlist in a new tab, signed in to your account. Open a playlist, tap <b>Share → Copy link</b>, and paste it here.</p>
   ${Object.entries(MOODS).map(([k,m])=>`<div class="row" style="margin-bottom:8px"><label for="lk-${k}" style="min-width:130px;font-weight:700">${m.n}</label><input type="text" inputmode="url" id="lk-${k}" value="${esc(S.links[k]||'')}" placeholder="https://music.youtube.com/playlist?list=…"></div>`).join('')}
   <div class="row"><button class="btn main" data-act="savelinks">Save links</button><span class="hint" id="ytmsg" style="margin:0" aria-live="polite"></span></div>
   <h3 style="font-size:18px;margin:20px 0 8px">Add a record of your own</h3>
@@ -621,7 +648,7 @@ $('#dn').onclick=toggleNight;$('#lb').onclick=()=>{showLabels=!showLabels;LS.set
 $('#pclose').onclick=close;$('#ov').addEventListener('click',e=>{if(e.target.id==='ov')close()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cur)close()});
 $('#ptabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){tab=b.dataset.tab;editing=null;render()}});
-$('#pbody').addEventListener('input',e=>{if(e.target.id==='jtext'){JE.text=e.target.value;$('#jstats').innerHTML=jStats(JE.text);LS.set('zs-draft',JE)}else if(e.target.id==='jdate'){JE.date=e.target.value}else if(e.target.id==='vsearch'){P.vs=e.target.value;$('#vlist').innerHTML=vListHTML()}else if(e.target.id==='vol'){vol=+e.target.value;LS.set('zs-vol',vol);if(master)master.gain.value=vol}else if(e.target.dataset.k&&P.val){P.val[e.target.dataset.k]=e.target.value}});
+$('#pbody').addEventListener('input',e=>{if(e.target.id==='jtext'){JE.text=e.target.value;$('#jstats').innerHTML=jStats(JE.text);LS.set('zs-draft',JE)}else if(e.target.id==='jdate'){JE.date=e.target.value}else if(e.target.id==='vsearch'){P.vs=e.target.value;$('#vlist').innerHTML=vListHTML()}else if(e.target.id==='vol'){vol=+e.target.value;LS.set('zs-vol',vol);if(master)master.gain.value=vol;if(YTP&&YTP.setVolume)YTP.setVolume(Math.round(vol*100))}else if(e.target.dataset.k&&P.val){P.val[e.target.dataset.k]=e.target.value}});
 $('#pbody').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('mb')){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));return}if(e.key!=='Enter'||e.target.tagName!=='INPUT')return;const map={newsent:'addsent',newpin:'addpin',pintitle:'pinrename',vde:'vadd',ven:'vadd',vtop:'vadd'};const a=map[e.target.id]||(e.target.dataset.addin&&'addchip');if(a){e.preventDefault();const b=e.target.dataset.addin?e.target.parentElement.querySelector('[data-act=addchip]'):$(`[data-act=${a}]`);b&&b.click()}});
 function armed(b){if(b.dataset.armed)return true;b.dataset.armed=1;const t=b.textContent;b.textContent='Sure?';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=t}},3000);return false}
 $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act,d=b.dataset;
@@ -668,7 +695,9 @@ $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
   case 'addpin':{const v=$('#newpin').value.trim();if(!v)return;const id=rid();S.pins.push({id,title:v});S.notes['pin:'+id]=[];pinOpen=id;drawPins();addLeaves(1);break}
   case 'pinrename':{const p=S.pins.find(x=>x.id===pinOpen),v=$('#pintitle').value.trim();if(p&&v){p.title=v;save()}break}
   case 'pindel':{if(!armed(b))return;S.pins=S.pins.filter(x=>x.id!==pinOpen);delete S.notes['pin:'+pinOpen];pinOpen=null;drawPins();save();break}
-  case 'rec':{const m=d.m;setMood(m);buildRoom();if(playing===m)stopMusic();else playMusic(m);save();break}
+  case 'rec':{const m=d.m;setMood(m);buildRoom();if(ytOn){}else if(playing===m)stopMusic();else playMusic(m);save();break}
+  case 'ytsave':{const v=$('#ytin').value.trim();if(v&&!ytParse(v)){ytSet(ytOn,'That doesn\'t look like a YouTube link.');return}S.ytm=v;save();if(YTP&&YTP._src!==v&&ytOn)ytPlay();ytSet(ytOn,v?'Saved ✓ Press Play.':'Link removed.');return}
+  case 'ytplay':{const v=$('#ytin').value.trim();if(v&&v!==S.ytm){if(!ytParse(v)){ytSet(false,'That doesn\'t look like a YouTube link.');return}S.ytm=v;save()}if(ytOn)ytPause();else ytPlay();return}
   case 'stop':stopMusic();break;
   case 'qadd':{const t=$('#qtext').value.trim();if(!t)return;S.inbox.unshift({id:'q'+Date.now(),text:t,created:Date.now()});save();break}
   case 'qmove':{const sel=$('#mv-'+d.id);moveNote(d.id,sel.value);b.textContent='Moved ✓';break}
