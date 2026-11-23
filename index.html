@@ -531,7 +531,7 @@ function crossfade(fn,ms){const w=$('#world');let c=null;try{c=w.cloneNode(true)
 function snapT(){const w=$('#world');w.classList.remove('zooming','unzooming');w.style.transition='none';applyT();void w.offsetWidth;w.style.transition=''}
 function unzoom(){if(!zoomT)return;crossfade(()=>{zoomT=null;snapT()},450)}
 function hit(st,i){if(st==='daynight')return toggleNight();
-  if(st==='wetter'){const order=['morgen','herbst','regen','nacht'],m=order[(order.indexOf(S.mood)+1)%4];setMood(m);save();buildRoom();const url=S.links[m];status('Wetter: '+MOODS[m].n+(ytParse(url||'')?' ♪':''));if(ytParse(url||'')){gestured=true;if(muted)setMuted(false);playFaded(url,m)}return}
+  if(st==='wetter'){const order=['morgen','herbst','regen','nacht'],m=order[(order.indexOf(S.mood)+1)%4];setMood(m);save();buildRoom();const url=S.links[m];const can=ytParse(url||'')&&!muted;status('Wetter: '+MOODS[m].n+(can?' ♪':''));if(can){gestured=true;playFaded(url,m)}return}
   const sp=RD().spots[+i];
   if(st==='tagebuch'&&room==='bib'){zoomTo(sp.zoom[0],sp.zoom[1],()=>{$('#closeup').classList.add('on');setTimeout(()=>openPanel(st),450)});return}
   if(st==='mindmap'){zoomTo(sp.zoom[0],sp.zoom[1],()=>openEye());return}
