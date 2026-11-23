@@ -28,8 +28,9 @@ button,input,textarea,select{font:inherit;color:inherit}button{cursor:pointer}
 #stage{position:fixed;inset:0;overflow:hidden;touch-action:none;cursor:grab}
 #stage:active{cursor:grabbing}
 #world{position:absolute;left:0;top:0;transition:transform .25s ease-out;will-change:transform}
-#world.zooming .tag{opacity:0}#world.zooming{transition:transform .5s cubic-bezier(.45,0,.25,1)}
-.unzooming{transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+#world.zooming .tag{opacity:0}#world#world.zooming{transition:transform .5s cubic-bezier(.45,0,.25,1)}
+#world.unzooming{transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+@media (prefers-reduced-motion:reduce){#world,#world.zooming,#world.unzooming{transition:none!important}}
 #bg{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
 #fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:screen}
 #tint{position:absolute;inset:0;background:#0b1640;mix-blend-mode:multiply;opacity:0;transition:opacity .8s;pointer-events:none}
@@ -134,9 +135,9 @@ textarea{min-height:120px;resize:vertical;line-height:1.6}
 .rec.photo.playing{outline-color:var(--gold)}
 .rec .fx{position:absolute;inset:0;pointer-events:none;z-index:-1}
 @keyframes kb{from{transform:scale(1.04) translate(0,0)}to{transform:scale(1.15) translate(-2.5%,-2%)}}
-@keyframes pulse{50%{opacity:.55}}
+@keyframes glowpulse{50%{opacity:.6}}
 @property --ra{syntax:'<angle>';inherits:false;initial-value:0deg}
-.m-morgen .sun{background:radial-gradient(circle at 10% 40%,#ffd27aa6 0,#ffb24d38 16%,#0000 42%);mix-blend-mode:screen;animation:pulse 6s ease-in-out infinite}
+.m-morgen .sun{background:radial-gradient(circle at 10% 40%,#ffd27aa6 0,#ffb24d38 16%,#0000 42%);mix-blend-mode:screen;animation:glowpulse 6s ease-in-out infinite}
 .m-morgen .rays{background:repeating-conic-gradient(from var(--ra) at 10% 40%,#fff1c22e 0 3deg,#0000 3deg 12deg);mix-blend-mode:screen;-webkit-mask-image:radial-gradient(circle at 10% 40%,#000 0,#0000 70%);mask-image:radial-gradient(circle at 10% 40%,#000 0,#0000 70%);animation:rays 50s linear infinite}
 @keyframes rays{to{--ra:360deg}}
 .m-herbst .lf{inset:auto;top:-8%;width:10px;height:7px;background:#c8642a;border-radius:0 80% 0 80%;opacity:.92;animation:fall 10s linear infinite}
@@ -146,10 +147,10 @@ textarea{min-height:120px;resize:vertical;line-height:1.6}
 .m-regen .r2{background-size:90px 90px;opacity:.55;animation:rain2 .9s linear infinite}
 @keyframes rain{to{background-position:-10px 60px}}
 @keyframes rain2{to{background-position:-16px 90px}}
-.m-regen .flash{background:#e8f0ff;opacity:0;animation:flash 11s infinite}
-@keyframes flash{0%,92%,100%{opacity:0}93%{opacity:.32}94%{opacity:0}95.5%{opacity:.2}97%{opacity:0}}
-.m-nacht .stars{background-image:radial-gradient(1.3px 1.3px at 20% 12%,#fff,#0000),radial-gradient(1px 1px at 42% 6%,#fff,#0000),radial-gradient(1.5px 1.5px at 56% 24%,#fff,#0000),radial-gradient(1px 1px at 88% 8%,#fff,#0000),radial-gradient(1.2px 1.2px at 32% 22%,#fff,#0000),radial-gradient(1px 1px at 8% 26%,#fff,#0000),radial-gradient(1.2px 1.2px at 94% 28%,#fff,#0000);animation:pulse 3.5s ease-in-out infinite}
-.m-nacht .moon{background:radial-gradient(circle at 73% 17%,#cfd8ff66 0,#0000 24%);mix-blend-mode:screen;animation:pulse 7s ease-in-out infinite}
+.m-regen .flash{background:#e8f0ff;opacity:0;animation:lightning 11s infinite}
+@keyframes lightning{0%,92%,100%{opacity:0}93%{opacity:.32}94%{opacity:0}95.5%{opacity:.2}97%{opacity:0}}
+.m-nacht .stars{background-image:radial-gradient(1.3px 1.3px at 20% 12%,#fff,#0000),radial-gradient(1px 1px at 42% 6%,#fff,#0000),radial-gradient(1.5px 1.5px at 56% 24%,#fff,#0000),radial-gradient(1px 1px at 88% 8%,#fff,#0000),radial-gradient(1.2px 1.2px at 32% 22%,#fff,#0000),radial-gradient(1px 1px at 8% 26%,#fff,#0000),radial-gradient(1.2px 1.2px at 94% 28%,#fff,#0000);animation:glowpulse 5s ease-in-out infinite}
+.m-nacht .moon{background:radial-gradient(circle at 73% 17%,#cfd8ff66 0,#0000 24%);mix-blend-mode:screen;animation:glowpulse 7s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){.rec .fx,.rec.photo .ph img{animation:none!important}}
 #gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:#0d0b09b3;backdrop-filter:blur(6px)}
 #gate[hidden]{display:none}
