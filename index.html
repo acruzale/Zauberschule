@@ -114,6 +114,15 @@ textarea{min-height:120px;resize:vertical;line-height:1.6}
 .yt{font-weight:700;color:#f2b98a;text-decoration:none;padding:6px 2px}
 .ytbox{padding:12px 16px;margin-top:18px}
 .ytbox.ytm{margin:0 0 16px}
+#gate{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:#0d0b09b3;backdrop-filter:blur(6px)}
+#gate[hidden]{display:none}
+.gatecard{width:min(420px,100%);background:var(--paper);color:var(--pink);border:1px solid var(--pline);border-radius:18px;padding:24px 22px;text-align:center;box-shadow:0 18px 50px #000a}
+.gatecard h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:34px;margin:0 0 4px}
+.gatecard p{margin:6px 0}
+.gatecard .btn{width:100%;margin-top:10px;color:var(--pink);border-color:var(--pline)}
+.gatecard .btn.main{color:#fff}
+.gatecard .hint{color:var(--psoft);font-size:14px}
+.gatecard .btn:disabled{opacity:.45;cursor:not-allowed}
 .chips{cursor:grab;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent)}
 .chips.drag{cursor:grabbing;user-select:none}
 .chips.drag button{pointer-events:none}
@@ -155,7 +164,8 @@ textarea{min-height:120px;resize:vertical;line-height:1.6}
 <body>
 <main id="stage" aria-label="Room"><div id="world"><img id="bg" alt="" draggable="false"><canvas id="fx"></canvas><div id="tint"></div><div id="glows"></div><div id="spots"></div></div></main>
 <div id="closeup" aria-hidden="true"><img src="img/book-closeup.jpg" alt=""></div>
-<header class="top"><h1>Meine Zauberschule</h1><div class="bar"><nav id="rooms" aria-label="Rooms"></nav><button id="dn"></button><button id="lb"></button><span id="status">Loading…</span></div></header>
+<header class="top"><h1>Meine Zauberschule</h1><div class="bar"><nav id="rooms" aria-label="Rooms"></nav><button id="dn"></button><button id="lb"></button><span id="status">Loading…</span><button id="acct" hidden></button></div></header>
+<div id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateh"><div class="gatecard"><h2 id="gateh">Meine Zauberschule</h2><p>A cosy magic school for learning German.</p><button class="btn main" id="gsignin">Sign in with Google</button><button class="btn" id="gguest">Explore as a guest</button><p class="hint" id="gmsg" aria-live="polite"></p><p class="hint">Signing in keeps your journal, notes and progress safe and the same on all your devices. Guests can look around and try everything; what a guest writes stays in their own browser.</p></div></div>
 <nav class="chips" id="chips" aria-label="Things in this room"></nav>
 <div id="eye" hidden role="dialog" aria-modal="true" aria-label="Telescope"><div class="eyebar"><button id="eyeback" data-act="eyeback" hidden>← Whole sky</button><span class="eyez"><button data-act="eyezout" aria-label="Zoom out">−</button><button data-act="eyezin" aria-label="Zoom in">+</button></span><button id="eyeclose" data-act="eyeclose">Close ×</button></div><div class="lens"><svg id="eyesvg" viewBox="0 0 1000 1000" role="group" aria-label="Constellations of your notes"></svg></div><div id="eyelist"></div></div>
 <div class="ov" id="ov" hidden>
@@ -380,7 +390,7 @@ let S=merge(LS.get('zs-state'));if(!LS.get('zs-state')){const h=new Date().getHo
 let J=LS.get('zs-journal')||[];
 let db=null,stateRef=null,jCol=null,mode='local',chain=Promise.resolve(),tSave=null;
 const status=t=>{$('#status').textContent=t};
-function save(){delete S._mig;LS.set('zs-state',S);clearTimeout(tSave);tSave=setTimeout(()=>{if(!stateRef)return;const body={v:1,s:structuredClone(S)};chain=chain.then(()=>stateRef.set(body)).then(()=>status('Saved to your account ✓')).catch(e=>status(e&&e.code==='quota_exceeded'?'Storage full: please delete some old notes':'Not saved to your account, only on this device'))},700)}
+function save(){delete S._mig;LS.set('zs-state',S);clearTimeout(tSave);tSave=setTimeout(()=>{if(!stateRef)return;const body={v:1,t:Date.now(),s:structuredClone(S)};lastPush=body.t;chain=chain.then(()=>stateRef.set(body)).then(()=>status('Saved to your account ✓')).catch(e=>status(e&&e.code==='quota_exceeded'?'Storage full: please delete some old notes':'Not saved to your account, only on this device'))},700)}
 function addLeaves(n){S.leaves+=n;drawPlant();save()}
 function registerCorrect(n){if(cur&&S.prac)S.prac[cur]=Date.now();S.correct+=n;while(S.correct>=5){S.correct-=5;S.leaves++}drawPlant();save()}
 
@@ -833,18 +843,38 @@ $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
 
 /* ---------- boot ---------- */
 if(S._mig)save();buildRoom();status('Saving in this browser');
-(async()=>{if(!window.claude||!window.claude.use){status('Saving in this browser only');return}
-  try{const [d,u]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);const id=u&&await u.id();if(!d||!id){status('Not signed in: saving in this browser only');return}
-    db=d;const base='data/users/'+id;const ref=db.doc(base+'/state');
-    const timer=setTimeout(()=>status('Can\'t reach your account, saving here for now'),10000);
-    const snap=await ref.get();clearTimeout(timer);stateRef=ref;
-    if(snap.exists&&snap.data().s){S=merge(snap.data().s);if(S._mig)save();else LS.set('zs-state',S);buildRoom();status('Saved to your account ✓')}else{save()}
-    jCol=db.doc(base+'/profile').collection('journal');
+/* ---------- accounts: Firebase (Google sign-in + Firestore) or guest ---------- */
+// Paste the config object from Firebase console → Project settings → Your apps → Web app.
+const FIREBASE_CONFIG=null;
+let FB=null,lastPush=0,cloudUser=null;
+const loadJs=src=>new Promise((res,rej)=>{const s2=document.createElement('script');s2.src=src;s2.onload=res;s2.onerror=rej;document.head.appendChild(s2)});
+async function fbInit(){if(!FIREBASE_CONFIG)return null;if(FB)return FB;const base='https://www.gstatic.com/firebasejs/10.12.2/';await loadJs(base+'firebase-app-compat.js');await Promise.all([loadJs(base+'firebase-auth-compat.js'),loadJs(base+'firebase-firestore-compat.js')]);
+  firebase.initializeApp(FIREBASE_CONFIG);const fs=firebase.firestore();fs.settings({ignoreUndefinedProperties:true,merge:true});FB={auth:firebase.auth(),fs};return FB}
+function showGate(msg){$('#gate').hidden=false;$('#gmsg').textContent=msg||(FIREBASE_CONFIG?'':'Sign-in isn\'t switched on yet. You can explore as a guest.');$('#gsignin').disabled=!FIREBASE_CONFIG;setTimeout(()=>$(FIREBASE_CONFIG?'#gsignin':'#gguest').focus(),50)}
+function hideGate(){$('#gate').hidden=true}
+function acctBtn(){const b=$('#acct');b.hidden=false;b.textContent=cloudUser?'Sign out'+(cloudUser.displayName?' ('+cloudUser.displayName.split(' ')[0]+')':''):'Sign in'}
+function asGuest(){LS.set('zs-mode','guest');cloudUser=null;hideGate();acctBtn();status('Guest: saving in this browser only')}
+async function connectCloud(u){cloudUser=u;acctBtn();status('Connecting to your account…');
+  try{const fs=FB.fs,ref=fs.doc('users/'+u.uid+'/app/state');
+    const snap=await ref.get();stateRef=ref;
+    if(snap.exists&&snap.data().s){S=merge(snap.data().s);lastPush=snap.data().t||0;if(S._mig)save();else LS.set('zs-state',S);buildRoom();status('Saved to your account ✓')}else{save();status('Your notes are now saved to your account ✓')}
+    jCol=fs.collection('users/'+u.uid+'/journal');
     const localOnly=[...J];let first=true;
     jCol.onSnapshot(qs=>{const remote=qs.docs.map(x=>({id:x.id,...x.data()}));if(first&&!qs.metadata.fromCache){first=false;const ids=new Set(remote.map(r=>r.id));localOnly.filter(x=>!ids.has(x.id)).forEach(x=>{const {id:eid,...rest}=x;jCol.doc(eid).set(rest).catch(()=>{})})}
       const ids=new Set(remote.map(r=>r.id));J=[...remote,...(first?localOnly.filter(x=>!ids.has(x.id)):[])];LS.set('zs-journal',J);if(cur==='tagebuch'&&document.activeElement.id!=='jtext')render()},()=>status('Journal saved on this device only'));
     if(cur)render();
-  }catch(e){status('Saving in this browser only')}})();
+  }catch(e){status('Can\'t reach your account, saving here for now')}}
+document.addEventListener('visibilitychange',async()=>{if(document.hidden||!stateRef)return;try{const snap=await stateRef.get();const d=snap.exists&&snap.data();if(d&&d.s&&(d.t||0)>lastPush+1000){lastPush=d.t;S=merge(d.s);LS.set('zs-state',S);buildRoom();if(cur&&!editing)render();status('Updated from your other device ✓')}}catch(e){}});
+async function signIn(){$('#gmsg').textContent='Opening Google sign-in…';try{const fb=await fbInit();const prov=new firebase.auth.GoogleAuthProvider();try{await fb.auth.signInWithPopup(prov)}catch(e){if(e&&/popup/.test(e.code||''))await fb.auth.signInWithRedirect(prov);else throw e}}catch(e){$('#gmsg').textContent=e&&e.code==='auth/unauthorized-domain'?'This website address isn\'t allowed in Firebase yet (Authentication → Settings → Authorized domains).':'Sign-in didn\'t work. You can try again or explore as a guest.'}}
+$('#gsignin').onclick=signIn;
+$('#gguest').onclick=asGuest;
+$('#acct').onclick=async()=>{const b=$('#acct');if(!cloudUser){showGate();return}if(!armed(b))return;try{await FB.auth.signOut()}catch(e){}LS.set('zs-mode',null);LS.set('zs-state',null);LS.set('zs-journal',null);LS.set('zs-draft',null);location.reload()};
+(async()=>{const mode=LS.get('zs-mode');
+  if(mode==='google'&&FIREBASE_CONFIG){status('Connecting…');try{await fbInit()}catch(e){status('Offline: saving in this browser for now');acctBtn();return}}
+  else if(mode==='guest'){asGuest()}
+  else showGate();
+  if(FIREBASE_CONFIG&&(mode==='google'||!mode)){try{const fb=await fbInit();fb.auth.onAuthStateChanged(u=>{if(u){LS.set('zs-mode','google');hideGate();connectCloud(u)}else if(LS.get('zs-mode')==='google'){LS.set('zs-mode',null);cloudUser=null;showGate('Please sign in again.')}})}catch(e){if(!LS.get('zs-mode'))$('#gmsg').textContent='Can\'t reach Google right now. You can explore as a guest.'}}
+})();
 }
 </script>
 </body>
