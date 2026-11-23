@@ -346,9 +346,11 @@ mindmap:{n:'Sternkarte',en:'All your notes as constellations',obj:'Das Teleskop'
 fragen:{n:'Fragen & Antworten',en:'Asking, yes & no',obj:'Die Tür'},
 tagebuch:{n:'Tagebuch',en:'Your German journal',obj:'Der Schreibtisch'},
 pin:{n:'Pergament',en:'New topics as you level up',obj:'Das Pergament'},
+pult:{n:'Sprechen & Präsentieren',en:'Opinions, presenting, requests, describing pictures',obj:'Das Pult'},
 platten:{n:'Musik & Licht',en:'Pick a record for the mood',obj:'Der Kronleuchter'},
 notizen:{n:'Schnellnotizen',en:'Quick notes now, sort them into the school later',obj:'Das Seehaus'},
 pflanze:{n:'Fortschritt',en:'Grows as you learn',obj:'Die Sternenfenster'}};
+const SPEAK=['meinung','praes','bitten','bilder'],isSpeak=id=>SPEAK.includes(id);
 const ART_IMG={praep:'img/chest.jpg',verben:'img/books.jpg',platten:'img/lantern.jpg',pflanze:'img/plant.jpg',tagebuch:'img/candle.jpg',fragen:'img/door.jpg'};
 const CG={koord:['Koordinierend','Verb stays in position 2','var(--y)'],sub:['Subordinierend','Verb goes to the end','var(--r)'],adv:['Adverbial','Verb next, then the subject','var(--b)']};
 const PG={akk:['Akkusativ','DOGFU','var(--g)'],dat:['Dativ','always Dativ','var(--r)'],wech:['Wechsel','Wohin? Akk · Wo? Dat','var(--o)']};
@@ -382,6 +384,7 @@ const ROOMS={
    {st:'faelle',r:[[756,266,56,64],[914,262,70,52],[1168,325,62,46],[774,340,50,52]],l:[868,232],lab:'Porträts · Fälle'},
    {st:'pin',r:[[1000,252,50,62]],l:[1026,236],lab:'Pergament'},
    {st:'fragen',r:[[836,300,66,100]],l:[868,412],lab:'Tür · Fragen'},
+   {st:'pult',r:[[815,475,105,50]],l:[862,480],lab:'Pult · Sprechen'},
    {st:'satzbau',r:[[926,398,180,104]],l:[1040,520],lab:'Treppe · Satzbau'},
    {st:'vocab',r:[[700,518,110,70]],l:[755,604],lab:'Kessel · Wortschatz',zoom:[755,553]},
    {st:'praep',r:[[1246,530,90,64]],l:[1290,612],lab:'Truhe · Präpositionen'},
@@ -459,8 +462,8 @@ function dustTick(){if(dctx&&!document.hidden){const c=dctx.canvas;dctx.clearRec
 if(!matchMedia('(prefers-reduced-motion: reduce)').matches)requestAnimationFrame(dustTick);
 
 /* ---------- telescope: notes as constellations ---------- */
-const MM=[['satzbau','Satzbau'],['faelle','Fälle'],['praep','Präpositionen'],['verben','Verben'],['konn','Konnektoren'],['vocab','Wortschatz'],['fragen','Fragen'],['pin','Pinnwand']];
-function mmKids(k){if(k==='vocab')return vTopics().map(t=>({t:t+' ('+S.vocab.filter(v=>(v.topic||'Andere')===t).length+')',act:'eyevocab',id:t,k}));if(k==='pin')return S.pins.filter(p=>p.id!=='fragen').map(p=>({t:p.title,act:'eyepin',id:p.id,k}));return (S.notes[k==='fragen'?'pin:fragen':k]||[]).map(n=>({t:(n.t||'Untitled').split(' · ')[0],act:'eyenote',id:n.id,k}))}
+const MM=[['satzbau','Satzbau'],['faelle','Fälle'],['praep','Präpositionen'],['verben','Verben'],['konn','Konnektoren'],['vocab','Wortschatz'],['fragen','Fragen'],['pult','Sprechen'],['pin','Pinnwand']];
+function mmKids(k){if(k==='vocab')return vTopics().map(t=>({t:t+' ('+S.vocab.filter(v=>(v.topic||'Andere')===t).length+')',act:'eyevocab',id:t,k}));if(k==='pin')return S.pins.filter(p=>p.id!=='fragen'&&!isSpeak(p.id)).map(p=>({t:p.title,act:'eyepin',id:p.id,k}));if(k==='pult')return S.pins.filter(p=>isSpeak(p.id)).map(p=>({t:p.title,act:'eyepult',id:p.id,k}));return (S.notes[k==='fragen'?'pin:fragen':k]||[]).map(n=>({t:(n.t||'Untitled').split(' · ')[0],act:'eyenote',id:n.id,k}))}
 const cut=(t,n)=>t.length>n?t.slice(0,n-1)+'…':t;
 function hashf(s){let h=2166136261;for(const c of s)h=Math.imul(h^c.charCodeAt(0),16777619);return ()=>{h=Math.imul(h^h>>>15,2246822507);h=Math.imul(h^h>>>13,3266489909);return ((h^=h>>>16)>>>0)/4294967296}}
 let EYE={sel:null,vb:[0,0,1000,1000],anim:null};
@@ -490,6 +493,7 @@ $('#eye').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if
   if(a==='eyeopen'){open(d.k);return}
   if(a==='eyevocab'){open('vocab');P.vt=d.id;render();return}
   if(a==='eyepin'){open('pin');pinOpen=d.id;render();return}
+  if(a==='eyepult'){open('pult');pinOpen=d.id;render();return}
   if(a==='eyenote'){const id=d.id;open(d.k);tab='notes';render();const el2=document.querySelector(`[data-nid="${id}"]`);if(el2){el2.scrollIntoView({block:'center'});el2.classList.add('flash')}}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#eye').hidden)closeEye()});
 
@@ -536,7 +540,7 @@ function close(){$('#ov').hidden=true;cur=null;$('#closeup').classList.remove('o
 function newJE(){const d=LS.get('zs-draft');return d&&d.text?d:{id:null,date:today(),prompt:pick(PROMPTS),text:''}}
 function render(){const s=ST[cur];$('#part').innerHTML=ART_IMG[cur]?`<img src="${ART_IMG[cur]}" alt="">`:(cur==='vocab'?'<div class="potion" aria-hidden="true"></div>':'');$('#pobj').textContent=s.obj;$('#ptitle').textContent=s.n;$('#pen').textContent=s.en;
   $('#ptabs').innerHTML=s.game?(s.tabs||[['notes','Notes'],['ueben','Practice']]).map(([k,t])=>`<button data-tab="${k}" class="${tab===k?'on':''}">${t}</button>`).join(''):'';
-  const f={satzbau:satzbauV,faelle:faelleV,praep:praepV,verben:verbenV,konn:konnV,tagebuch:journalV,notizen:notizenV,vocab:vocabV,fragen:()=>notesV('pin:fragen')+'<p class="hint">More ways to ask and suggest are on the Pergament under Bitten &amp; Vorschläge.</p>',pin:pinV,platten:platV,pflanze:plantV}[cur];$('#pbody').innerHTML=f()}
+  const f={satzbau:satzbauV,faelle:faelleV,praep:praepV,verben:verbenV,konn:konnV,tagebuch:journalV,notizen:notizenV,vocab:vocabV,fragen:()=>notesV('pin:fragen')+'<p class="hint">More ways to ask and suggest are on the Pult (the desk) under Bitten &amp; Vorschläge.</p>',pin:pinV,pult:pultV,platten:platV,pflanze:plantV}[cur];$('#pbody').innerHTML=f()}
 
 function notesV(key){const arr=S.notes[key]||(S.notes[key]=[]);return arr.map(n=>editing===n.id?`<article class="note"><input type="text" id="et" value="${esc(n.t)}" placeholder="Title" aria-label="Title"><p class="hint">**bold** · ==highlight== · start a line with "- " for a list · "|a|b" for a table</p><textarea id="eb" rows="7" lang="de" aria-label="Note">${esc(n.b)}</textarea><div class="na"><button class="btn danger" data-act="delnote" data-id="${n.id}">Delete</button><button class="btn" data-act="cancel" data-id="${n.id}">Cancel</button><button class="btn main" data-act="savenote" data-id="${n.id}" data-key="${key}">Save</button></div></article>`:`<article class="note" data-nid="${n.id}"><h3>${esc(n.t)||'<i>Untitled</i>'}</h3>${md(n.b)}<div class="na"><button class="btn sm" data-act="edit" data-id="${n.id}">Edit</button></div></article>`).join('')+`<button class="btn main" data-act="addnote" data-key="${key}">+ Add a note</button>`}
 function groupsV(list,G){return `<div class="groups">${Object.entries(G).map(([g,[t,sub]])=>`<div class="grp c-${g}"><h3>${t}</h3><p>${sub}</p>${S[list][g].map((w,i)=>`<span class="chip">${esc(w)}<button data-act="rmchip" data-list="${list}" data-g="${g}" data-i="${i}" aria-label="Remove ${esc(w)}">×</button></span>`).join('')}<div class="row"><input type="text" data-addin="${list}-${g}" placeholder="Add a word…" aria-label="${t}: add a word"><button class="btn sm" data-act="addchip" data-list="${list}" data-g="${g}">+</button></div></div>`).join('')}</div>`}
@@ -545,7 +549,7 @@ function groupsV(list,G){return `<div class="groups">${Object.entries(G).map(([g
 
 /* Schnellnotizen (lake house) */
 const MOVE=[['satzbau','Satzbau'],['faelle','Fälle'],['praep','Präpositionen'],['verben','Verben'],['konn','Konnektoren'],['pin:fragen','Fragen & Antworten'],['vocab','Wortschatz (as a word)']];
-function notizenV(){const opts=MOVE.concat(S.pins.filter(p=>p.id!=='fragen').map(p=>['pin:'+p.id,'Pergament: '+p.title])).map(([k,t])=>`<option value="${esc(k)}">${esc(t)}</option>`).join('');
+function notizenV(){const opts=MOVE.concat(S.pins.filter(p=>p.id!=='fragen').map(p=>['pin:'+p.id,(isSpeak(p.id)?'Pult: ':'Pergament: ')+p.title])).map(([k,t])=>`<option value="${esc(k)}">${esc(t)}</option>`).join('');
   return `<div class="note"><h3>Write it down</h3><textarea id="qtext" lang="de" spellcheck="true" rows="5" placeholder="Something from today's lesson, a new word, a question for your teacher…"></textarea><div class="na"><button class="btn main" data-act="qadd">Save note</button></div><p class="hint">No need to sort it now. When you have energy, move each note to the right place in the school.</p></div>
   <h3 style="margin:18px 0 10px">Unsorted notes (${S.inbox.length})</h3>${S.inbox.length?S.inbox.map(n=>`<article class="entry"><p class="pr">${new Date(n.created).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</p><p>${esc(n.text)}</p><div class="row" style="justify-content:flex-end"><select id="mv-${n.id}" aria-label="Move to" style="width:auto;flex:1 1 200px;max-width:320px">${opts}</select><button class="btn sm main" data-act="qmove" data-id="${n.id}">Move</button><button class="btn sm danger" data-act="qdel" data-id="${n.id}">Delete</button></div></article>`).join(''):'<p class="hint">All sorted. Enjoy the lake.</p>'}`}
 function moveNote(id,to){const n=S.inbox.find(x=>x.id===id);if(!n)return;
@@ -617,8 +621,10 @@ async function jSave(){const t=$('#jtext').value.trim();if(!t)return;const isNew
 async function jDel(id){J=J.filter(x=>x.id!==id);LS.set('zs-journal',J);render();if(jCol){try{await jCol.doc(id).delete()}catch(e){}}}
 
 /* Pinnwand */
+function pultV(){if(pinOpen){const p=S.pins.find(x=>x.id===pinOpen);if(!p){pinOpen=null;return pultV()}return `<div class="row" style="margin-bottom:12px"><button class="btn sm" data-act="pinback">← All speaking topics</button></div><h3 style="margin:0 0 12px">${esc(p.title)}</h3>`+notesV('pin:'+p.id)}
+  return `<p class="hint">Everything for speaking: giving your opinion, presenting, asking politely and describing pictures.</p><div class="pins">${SPEAK.map(id=>S.pins.find(p=>p.id===id)).filter(Boolean).map(p=>`<button class="pinc" data-act="pinopen" data-id="${p.id}">${esc(p.title)}<small>${(n=>n+(n===1?' note':' notes'))((S.notes['pin:'+p.id]||[]).length)}</small></button>`).join('')}</div>`}
 function pinV(){if(pinOpen){const p=S.pins.find(x=>x.id===pinOpen);if(!p){pinOpen=null;return pinV()}return `<div class="row" style="margin-bottom:12px"><button class="btn sm" data-act="pinback">← All topics</button></div><div class="row" style="margin-bottom:14px"><input type="text" id="pintitle" value="${esc(p.title)}" aria-label="Topic name"><button class="btn sm" data-act="pinrename">Rename</button><button class="btn sm danger" data-act="pindel">Delete topic</button></div>`+notesV('pin:'+p.id)}
-  return `<p class="hint">New grammar topic as you level up? Pin it here. Each topic gets its own notes.</p><div class="pins">${S.pins.filter(p=>p.id!=='fragen').map(p=>`<button class="pinc" data-act="pinopen" data-id="${p.id}">${esc(p.title)}<small>${(n=>n+(n===1?' note':' notes'))((S.notes['pin:'+p.id]||[]).length)}</small></button>`).join('')}</div><div class="row"><input type="text" id="newpin" placeholder="e.g. Konjunktiv II, Passiv" lang="de"><button class="btn main" data-act="addpin">Pin it</button></div>`}
+  return `<p class="hint">New grammar topic as you level up? Pin it here. Each topic gets its own notes.</p><div class="pins">${S.pins.filter(p=>p.id!=='fragen'&&!isSpeak(p.id)).map(p=>`<button class="pinc" data-act="pinopen" data-id="${p.id}">${esc(p.title)}<small>${(n=>n+(n===1?' note':' notes'))((S.notes['pin:'+p.id]||[]).length)}</small></button>`).join('')}</div><div class="row"><input type="text" id="newpin" placeholder="e.g. Konjunktiv II, Passiv" lang="de"><button class="btn main" data-act="addpin">Pin it</button></div>`}
 /* Platten */
 function svgMotif(k){return {morgen:'<circle cx="70%" cy="34%" r="16%" fill="#fff3c9" opacity=".9"/><rect x="0" y="66%" width="100%" height="34%" fill="#000" opacity=".08"/>',herbst:'<g fill="#ffd08a" opacity=".85"><ellipse cx="72%" cy="28%" rx="9%" ry="5%" transform="rotate(30)"/><ellipse cx="55%" cy="40%" rx="7%" ry="4%"/><ellipse cx="82%" cy="48%" rx="6%" ry="3.5%"/></g>',regen:'<g stroke="#fff" stroke-width="3" stroke-linecap="round" opacity=".7"><path d="M40 20l-6 18M80 30l-6 18M120 14l-6 18M150 44l-6 18M60 60l-6 18M110 70l-6 18"/></g>',nacht:'<circle cx="72%" cy="30%" r="13%" fill="#f3ead2"/><circle cx="78%" cy="26%" r="11%" fill="#2a2d55"/><g fill="#fff"><circle cx="25%" cy="20%" r="1.5"/><circle cx="40%" cy="35%" r="1"/><circle cx="55%" cy="15%" r="1.3"/></g>'}[k]}
 function recCard(k,m){const url=S.links[k];return `<div class="recw"><button class="rec ${S.mood===k?'on':''}" data-act="rec" data-m="${k}" style="background:${m.bg}" aria-pressed="${playing===k}"><svg aria-hidden="true">${svgMotif(k)}</svg><span>${m.n}<br><small>${m.en}${playing===k?' · café music playing ♪':''}</small></span></button>${url?`<a class="yt" href="${esc(url)}" target="_blank" rel="noopener">▶ Open my playlist ↗</a>`:''}</div>`}
@@ -652,7 +658,7 @@ $('#pbody').addEventListener('input',e=>{if(e.target.id==='jtext'){JE.text=e.tar
 $('#pbody').addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.classList&&e.target.classList.contains('mb')){e.preventDefault();e.target.dispatchEvent(new MouseEvent('click',{bubbles:true}));return}if(e.key!=='Enter'||e.target.tagName!=='INPUT')return;const map={newsent:'addsent',newpin:'addpin',pintitle:'pinrename',vde:'vadd',ven:'vadd',vtop:'vadd'};const a=map[e.target.id]||(e.target.dataset.addin&&'addchip');if(a){e.preventDefault();const b=e.target.dataset.addin?e.target.parentElement.querySelector('[data-act=addchip]'):$(`[data-act=${a}]`);b&&b.click()}});
 function armed(b){if(b.dataset.armed)return true;b.dataset.armed=1;const t=b.textContent;b.textContent='Sure?';setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=t}},3000);return false}
 $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(!b||b.disabled)return;const a=b.dataset.act,d=b.dataset;
-  const notesKey=()=>cur==='pin'?'pin:'+pinOpen:cur==='fragen'?'pin:fragen':cur;
+  const notesKey=()=>(cur==='pin'||cur==='pult')?'pin:'+pinOpen:cur==='fragen'?'pin:fragen':cur;
   switch(a){
   case 'edit':editing=d.id;break;
   case 'addnote':{const n=N('','');n.fresh=1;(S.notes[d.key]||(S.notes[d.key]=[])).push(n);editing=n.id;break}
