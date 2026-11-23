@@ -410,6 +410,7 @@ vocab:{n:'Wortschatz',en:'Look into the cauldron: your vocabulary',obj:'Der Kess
 mindmap:{n:'Sternkarte',en:'All your notes as constellations',obj:'Das Teleskop'},
 fragen:{n:'Fragen & Antworten',en:'Asking, yes & no',obj:'Die Tür'},
 tagebuch:{n:'Tagebuch',en:'Your German journal',obj:'Der Schreibtisch'},
+logs:{n:'Denkarium',en:'Your past journal entries',obj:'Die Bücher'},
 pin:{n:'Pergament',en:'New topics as you level up',obj:'Das Pergament'},
 pruefung:{n:'Mini-Prüfung',en:'A mixed quiz from all your notes. Stop whenever you like.',obj:'Der Stuhl'},
 pult:{n:'Sprechen & Präsentieren',en:'Opinions, presenting, requests, describing pictures',obj:'Das Pult'},
@@ -417,7 +418,7 @@ platten:{n:'Musik & Licht',en:'Pick a record for the mood',obj:'Der Kronleuchter
 notizen:{n:'Schnellnotizen',en:'Quick notes now, sort them into the school later',obj:'Das Seehaus'},
 pflanze:{n:'Fortschritt',en:'Grows as you learn',obj:'Die Sternenfenster'}};
 const SPEAK=['meinung','praes','bitten','bilder'],isSpeak=id=>SPEAK.includes(id);
-const ART_IMG={praep:'img/art-truhe.jpg',vocab:'img/art-kessel.jpg',faelle:'img/art-portraets.jpg',pruefung:'img/art-sanduhr.jpg',verben:'img/books.jpg',pflanze:'img/plant.jpg',tagebuch:'img/candle.jpg',fragen:'img/art-tuer.jpg'};
+const ART_IMG={praep:'img/art-truhe.jpg',vocab:'img/art-kessel.jpg',faelle:'img/art-portraets.jpg',pruefung:'img/art-sanduhr.jpg',verben:'img/books.jpg',pflanze:'img/plant.jpg',tagebuch:'img/art-feder.jpg',logs:'img/art-denkarium.jpg',fragen:'img/art-tuer.jpg'};
 const CG={koord:['Koordinierend','Verb stays in position 2','var(--y)'],sub:['Subordinierend','Verb goes to the end','var(--r)'],adv:['Adverbial','Verb next, then the subject','var(--b)']};
 const PG={akk:['Akkusativ','DOGFU','var(--g)'],dat:['Dativ','always Dativ','var(--r)'],wech:['Wechsel','Wohin? Akk · Wo? Dat','var(--o)']};
 const MOODS={
@@ -470,7 +471,8 @@ const ROOMS={
  bib:{n:'Bibliothek',w:1920,h:1200,day:'img/library.jpg',night:'img/library.jpg',tint:1,
   glows:[[648,662,46],[848,668,46]],
   dust:[[1200,300,1800,900]],
-  spots:[{st:'tagebuch',r:[[440,690,640,200]],l:[760,668],lab:'Schreibtisch · Tagebuch',zoom:[740,770]},
+  spots:[{st:'tagebuch',r:[[440,700,550,190]],l:[740,668],lab:'Schreibtisch · Tagebuch',zoom:[740,770]},
+   {st:'logs',r:[[994,598,62,178]],l:[1025,588],lab:'Bücher · Denkarium'},
    {st:'platten',r:[[1690,180,170,540]],l:[1775,160],lab:'Fenster · Musik & Licht'}]},
  see:{n:'Seehaus',variants:(()=>{const sp=[{st:'notizen',r:[[720,80,380,360]],l:[905,460],lab:'Seehaus · Schnellnotizen',zoom:[905,330]},{st:'platten',r:[[1230,520,690,480]],l:[1560,500],lab:'Steg · Musik'},{st:'wetter',r:[[1150,0,770,300]],l:[1450,210],lab:'Himmel · Wetter'}];
    return {morgen:{img:'img/lake-morgen.jpg',w:1920,h:1080,spots:sp,fx:'pollen',dust:[[0,100,800,700]]},
@@ -660,7 +662,7 @@ function close(){$('#ov').hidden=true;cur=null;$('#closeup').classList.remove('o
 function newJE(){const d=LS.get('zs-draft');return d&&d.text?d:{id:null,date:today(),prompt:pick(PROMPTS),text:''}}
 function render(){const s=ST[cur];document.querySelector('.sh').classList.toggle('hero',cur==='platten');$('#part').innerHTML=ART_IMG[cur]?`<img src="${ART_IMG[cur]}" alt="">`:(cur==='vocab'?'<div class="potion" aria-hidden="true"></div>':'');$('#pobj').textContent=s.obj;$('#ptitle').textContent=s.n;$('#pen').textContent=s.en;
   $('#ptabs').innerHTML=s.game?(s.tabs||[['notes','Notes'],['ueben','Practice']]).map(([k,t])=>`<button data-tab="${k}" class="${tab===k?'on':''}">${t}</button>`).join(''):'';
-  const f={satzbau:satzbauV,faelle:faelleV,praep:praepV,verben:verbenV,konn:konnV,tagebuch:journalV,notizen:notizenV,vocab:vocabV,fragen:()=>notesV('pin:fragen')+'<p class="hint">More ways to ask and suggest are on the Pult (the desk) under Bitten &amp; Vorschläge.</p>',pin:pinV,pult:pultV,pruefung:examV,platten:platV,pflanze:plantV}[cur];$('#pbody').innerHTML=f()}
+  const f={satzbau:satzbauV,faelle:faelleV,praep:praepV,verben:verbenV,konn:konnV,tagebuch:journalV,logs:logsV,notizen:notizenV,vocab:vocabV,fragen:()=>notesV('pin:fragen')+'<p class="hint">More ways to ask and suggest are on the Pult (the desk) under Bitten &amp; Vorschläge.</p>',pin:pinV,pult:pultV,pruefung:examV,platten:platV,pflanze:plantV}[cur];$('#pbody').innerHTML=f()}
 
 function notesV(key){const arr=S.notes[key]||(S.notes[key]=[]);return arr.map(n=>editing===n.id?`<article class="note"><input type="text" id="et" value="${esc(n.t)}" placeholder="Title" aria-label="Title"><p class="hint">**bold** · ==highlight== · start a line with "- " for a list · "|a|b" for a table</p><textarea id="eb" rows="7" lang="de" aria-label="Note">${esc(n.b)}</textarea><div class="na"><button class="btn danger" data-act="delnote" data-id="${n.id}">Delete</button><button class="btn" data-act="cancel" data-id="${n.id}">Cancel</button><button class="btn main" data-act="savenote" data-id="${n.id}" data-key="${key}">Save</button></div></article>`:`<article class="note" data-nid="${n.id}"><h3>${esc(n.t)||'<i>Untitled</i>'}</h3>${md(n.b)}<div class="na"><button class="btn sm" data-act="edit" data-id="${n.id}">Edit</button></div></article>`).join('')+`<button class="btn main" data-act="addnote" data-key="${key}">+ Add a note</button>`}
 function groupsV(list,G){return `<div class="groups">${Object.entries(G).map(([g,[t,sub]])=>`<div class="grp c-${g}"><h3>${t}</h3><p>${sub}</p>${S[list][g].map((w,i)=>`<span class="chip">${esc(w)}<button data-act="rmchip" data-list="${list}" data-g="${g}" data-i="${i}" aria-label="Remove ${esc(w)}">×</button></span>`).join('')}<div class="row"><input type="text" data-addin="${list}-${g}" placeholder="Add a word…" aria-label="${t}: add a word"><button class="btn sm" data-act="addchip" data-list="${list}" data-g="${g}">+</button></div></div>`).join('')}</div>`}
@@ -735,7 +737,10 @@ function journalV(){if(JE.ch===undefined)JE.ch=jChallenge();const e=JE,list=[...
   <textarea id="jtext" lang="de" spellcheck="true" rows="8" placeholder="Heute habe ich …" aria-label="Journal entry">${esc(e.text)}</textarea>
   <div class="jstats" id="jstats">${jStats(e.text)}</div>
   <div class="row"><button class="btn main" data-act="jsave">${e.id?'Save changes':'Save entry'}</button>${e.id||e.text?'<button class="btn" data-act="jnew">Start a new entry</button>':''}</div>
-  <h3 style="margin:26px 0 10px">Your entries (${J.length})</h3>${list.length?list.map(x=>`<article class="entry"><h3>${new Date(x.date+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h3>${x.prompt?`<p class="pr">${esc(x.prompt[0])}</p>`:''}<p>${esc(x.text)}</p>${x.ch?`<p class="pr">Challenge: ${esc(x.ch.t)}${chkDone(x.ch,x.text)?' ✓':''}</p>`:''}${x.corr?`<div class="corr"><b>Correction</b>${corrHTML(x.corr)}</div>`:''}${P.jai===x.id?corrBox(x):''}<div class="na"><button class="btn sm" data-act="jai" data-id="${x.id}">${x.corr?'Correct again':'Get a correction'}</button>${x.corr?`<button class="btn sm danger" data-act="jcorrdel" data-id="${x.id}">Remove correction</button>`:''}<button class="btn sm" data-act="jcopy" data-id="${x.id}">Copy</button><button class="btn sm" data-act="jedit" data-id="${x.id}">Edit</button><button class="btn sm danger" data-act="jdel" data-id="${x.id}">Delete</button></div></article>`).join(''):'<p class="hint">No entries yet. One or two sentences is plenty to start.</p>'}
+  <p class="hint" style="margin-top:22px">Your past entries are kept in the <b>Denkarium</b>, the stack of books at the end of the desk.</p><button class="btn" data-act="openlogs">Open the Denkarium (${J.length} ${J.length===1?'entry':'entries'})</button>`}
+function logsV(){const list=[...J].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||(b.created||0)-(a.created||0));
+  return `<div class="row" style="margin-bottom:6px"><button class="btn sm" data-act="opentagebuch">✎ Write a new entry</button></div>
+  <h3 style="margin:12px 0 10px">Your entries (${J.length})</h3>${list.length?list.map(x=>`<article class="entry"><h3>${new Date(x.date+'T12:00').toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</h3>${x.prompt?`<p class="pr">${esc(x.prompt[0])}</p>`:''}<p>${esc(x.text)}</p>${x.ch?`<p class="pr">Challenge: ${esc(x.ch.t)}${chkDone(x.ch,x.text)?' ✓':''}</p>`:''}${x.corr?`<div class="corr"><b>Correction</b>${corrHTML(x.corr)}</div>`:''}${P.jai===x.id?corrBox(x):''}<div class="na"><button class="btn sm" data-act="jai" data-id="${x.id}">${x.corr?'Correct again':'Get a correction'}</button>${x.corr?`<button class="btn sm danger" data-act="jcorrdel" data-id="${x.id}">Remove correction</button>`:''}<button class="btn sm" data-act="jcopy" data-id="${x.id}">Copy</button><button class="btn sm" data-act="jedit" data-id="${x.id}">Edit</button><button class="btn sm danger" data-act="jdel" data-id="${x.id}">Delete</button></div></article>`).join(''):'<p class="hint">No entries yet. One or two sentences is plenty to start.</p>'}
   <p class="hint">Tip: <b>Get a correction</b> copies your entry with a request for Claude. Paste it into Claude, then paste the answer back here.</p>`}
 /* journal: grammar challenges + corrections via Claude (copy / paste, no API key needed) */
 const reEsc=w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
@@ -793,7 +798,7 @@ const okUrl=u=>/^https:\/\/[^\s"<>]+$/i.test(u);
 function plantV(){const toFlower=10-S.leaves%10;return `<div class="game" style="display:grid;grid-template-columns:minmax(0,160px) minmax(0,1fr);gap:16px;align-items:center;text-align:left"><img src="img/plant.jpg" alt="" style="width:100%;border-radius:12px;filter:saturate(${Math.min(1.3,.5+S.leaves/30)})"><div><div class="big" style="margin:0 0 8px">${S.leaves} ${S.leaves===1?'Blatt':'Blätter'}</div><div class="prog" aria-hidden="true"><i style="width:${(S.leaves%10)*10}%"></i></div><p class="hint">${toFlower} more ${toFlower===1?'leaf':'leaves'} until the next blossom.</p></div></div>
   <p>Your plant grows with you: <b>+2</b> for each journal entry, <b>+1</b> for each new note, <b>+1</b> for every 5 correct answers when practising.</p><p class="hint">No streaks and nothing to lose. If you take a week off, it just waits for you.</p>
   <div class="ytbox"><b>Back up your notes and journal</b><p class="hint" style="margin:4px 0 10px">Everything lives in this browser. Clearing your browsing data would delete it, so download a backup now and then (for example into OneDrive). A backup also moves everything to another device.</p><div class="row"><button class="btn main" data-act="bkexport">Download backup</button><label class="btn" style="cursor:pointer">Restore from a backup<input type="file" id="bkfile" accept=".json,application/json" hidden></label></div><p class="hint" id="bkmsg" aria-live="polite" style="margin:6px 0 0">${S.lastBackup?'Last backup: '+new Date(S.lastBackup).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'No backup yet.'}</p></div>
-  <p class="hint" style="font-size:12px;margin-top:14px">Picture credits: chest, cauldron and door by Ulysses Graphics / Avalanche (Hogwarts Legacy) · portraits: artist unknown · hourglass by Elsa Banaszak · music header by Sigachen · records by @thewizardingowl.</p>`}
+  <p class="hint" style="font-size:12px;margin-top:14px">Picture credits: chest, cauldron and door by Ulysses Graphics / Avalanche (Hogwarts Legacy) · portraits, quill & ink and pensieve: artists unknown · hourglass by Elsa Banaszak · music header by Sigachen · records by @thewizardingowl.</p>`}
 
 /* ---------- events ---------- */
 $('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-open]');if(b)hit(b.dataset.open,b.dataset.i)});
@@ -843,7 +848,7 @@ $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
   case 'jnoprompt':JE.prompt=null;JE.text=$('#jtext').value;break;
   case 'jsave':jSave();return;
   case 'jnew':JE={id:null,date:today(),prompt:pick(PROMPTS),text:''};LS.set('zs-draft',null);break;
-  case 'jedit':{const x=J.find(y=>y.id===d.id);if(!x)return;JE={id:x.id,date:x.date,prompt:x.prompt,ch:x.ch||null,text:x.text};render();$('#pbody').scrollTop=0;$('.sheet').scrollTop=0;$('#jtext').focus();return}
+  case 'jedit':{const x=J.find(y=>y.id===d.id);if(!x)return;JE={id:x.id,date:x.date,prompt:x.prompt,ch:x.ch||null,text:x.text};if(cur!=='tagebuch')open('tagebuch');else render();$('#pbody').scrollTop=0;$('.sheet').scrollTop=0;$('#jtext').focus();return}
   case 'jdel':if(!armed(b))return;jDel(d.id);return;
   case 'jcopy':{const x=J.find(y=>y.id===d.id);if(!x)return;try{navigator.clipboard.writeText(x.text).then(()=>{b.textContent='Copied ✓'},()=>{b.textContent='Couldn\'t copy'})}catch(err){b.textContent='Couldn\'t copy'}return}
   case 'pinopen':pinOpen=d.id;editing=null;break;
@@ -853,6 +858,8 @@ $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
   case 'pindel':{if(!armed(b))return;S.pins=S.pins.filter(x=>x.id!==pinOpen);delete S.notes['pin:'+pinOpen];pinOpen=null;drawPins();save();break}
   case 'rec':{const m=d.m;setMood(m);buildRoom();save();const url=S.links[m];if(!ytParse(url||'')){P.yt=1;ytMsg='Add a YouTube link for '+MOODS[m].n+' below, then tap the record again.';break}if(ytOn&&ytKey===m){ytPause();break}playFaded(url,m);break}
   case 'stop':stopMusic();ytPause();ytKey=null;ytMsg='';break;
+  case 'openlogs':open('logs');return;
+  case 'opentagebuch':open('tagebuch');return;
   case 'saverooms':{P.rm=1;let bad=0;S.roomLinks=S.roomLinks||{};for(const k of Object.keys(ROOMS)){const v=$('#rl-'+k).value.trim();if(v&&!ytParse(v)){bad++;continue}S.roomLinks[k]=v}S.roomOn=$('#roomon').checked;save();render();const m=$('#rmmsg');if(m)m.textContent=bad?'Some links were skipped: they need to be YouTube links.':'Saved ✓';if(ytKey&&ytKey.startsWith('room:')){ytKey=null}if(S.roomOn)roomMusic();else if(ytKey===null&&ytOn)ytPause();return}
   case 'qadd':{const t=$('#qtext').value.trim();if(!t)return;S.inbox.unshift({id:'q'+Date.now(),text:t,created:Date.now()});save();break}
   case 'qmove':{const sel=$('#mv-'+d.id);moveNote(d.id,sel.value);b.textContent='Moved ✓';break}
@@ -920,7 +927,7 @@ async function connectCloud(u){GUEST=false;cloudUser=u;acctBtn();status('Connect
     jCol=fs.collection('users/'+u.uid+'/journal');
     const localOnly=[...J];let first=true;
     jCol.onSnapshot(qs=>{const remote=qs.docs.map(x=>({id:x.id,...x.data()}));if(first&&!qs.metadata.fromCache){first=false;const ids=new Set(remote.map(r=>r.id));localOnly.filter(x=>!ids.has(x.id)).forEach(x=>{const {id:eid,...rest}=x;jCol.doc(eid).set(rest).catch(()=>{})})}
-      const ids=new Set(remote.map(r=>r.id));J=[...remote,...(first?localOnly.filter(x=>!ids.has(x.id)):[])];LS.set('zs-journal',J);if(cur==='tagebuch'&&document.activeElement.id!=='jtext')render()},()=>status('Journal saved on this device only'));
+      const ids=new Set(remote.map(r=>r.id));J=[...remote,...(first?localOnly.filter(x=>!ids.has(x.id)):[])];LS.set('zs-journal',J);if((cur==='tagebuch'||cur==='logs')&&document.activeElement.id!=='jtext'&&document.activeElement.id!=='jcorr')render()},()=>status('Journal saved on this device only'));
     if(cur)render();
   }catch(e){status('Can\'t reach your account, saving here for now')}}
 document.addEventListener('visibilitychange',async()=>{if(document.hidden||!stateRef)return;try{const snap=await stateRef.get();const d=snap.exists&&snap.data();if(d&&d.s&&(d.t||0)>lastPush+1000){lastPush=d.t;S=merge(d.s);LS.set('zs-state',S);buildRoom();if(cur&&!editing)render();status('Updated from your other device ✓')}}catch(e){}});
