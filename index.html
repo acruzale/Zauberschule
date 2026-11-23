@@ -223,7 +223,7 @@ textarea{min-height:120px;resize:vertical;line-height:1.6}
 <body>
 <main id="stage" aria-label="Room"><div id="world"><img id="bg" alt="" draggable="false"><canvas id="fx"></canvas><div id="tint"></div><div id="glows"></div><div id="spots"></div></div></main>
 <div id="closeup" aria-hidden="true"><img src="img/book-closeup.jpg" alt=""></div>
-<header class="top"><h1>Meine Zauberschule</h1><div class="bar"><nav id="rooms" aria-label="Rooms"></nav><button id="dn"></button><button id="lb"></button><span id="status">Loading…</span><button id="acct" hidden></button><button id="mute" class="icon" type="button"></button></div></header>
+<header class="top"><h1>Meine Zauberschule</h1><div class="bar"><nav id="rooms" aria-label="Rooms"></nav><button id="dn"></button><button id="lb"></button><span id="status" hidden></span><button id="acct" hidden></button><button id="mute" class="icon" type="button"></button></div></header>
 <div id="gate" hidden role="dialog" aria-modal="true" aria-labelledby="gateh"><div class="gatecard"><div class="gatehero"><img src="img/hero-login.jpg" alt=""></div><div class="gatebody"><h2 id="gateh">Meine Zauberschule</h2><p>A cosy magic school for learning German.</p><button class="btn main" id="gsignin">Sign in with Google</button><button class="btn" id="gguest">Explore as a guest</button><p class="hint" id="gmsg" aria-live="polite"></p><p class="hint">Guests look around and explore, nothing gets saved.</p></div></div></div>
 <nav class="chips" id="chips" aria-label="Things in this room"></nav>
 <div id="eye" hidden role="dialog" aria-modal="true" aria-label="Telescope"><div class="eyebar"><button id="eyeback" data-act="eyeback" hidden>← Whole sky</button><span class="eyez"><button data-act="eyezout" aria-label="Zoom out">−</button><button data-act="eyezin" aria-label="Zoom in">+</button></span><button id="eyeclose" data-act="eyeclose">Close ×</button></div><div class="lens"><svg id="eyesvg" viewBox="0 0 1000 1000" role="group" aria-label="Constellations of your notes"></svg></div><div id="eyelist"></div></div>
@@ -455,7 +455,7 @@ const merge=s=>{const o=structuredClone(DEF);if(s){Object.assign(o,s);o.notes={.
 let S=merge(LS.get('zs-state'));if(!LS.get('zs-state')){const h=new Date().getHours();S.mood=(h<7||h>=19)?'nacht':'morgen'}
 let J=LS.get('zs-journal')||[];
 let db=null,stateRef=null,jCol=null,mode='local',chain=Promise.resolve(),tSave=null;
-const status=t=>{$('#status').textContent=t};
+let stT=null;const status=t=>{const el=$('#status');clearTimeout(stT);if(/✓|Guest|Saving in this browser|saving in this browser|Connecting|Loading/.test(t)){el.textContent='';el.hidden=true;return}el.textContent=t;el.hidden=false;stT=setTimeout(()=>{el.hidden=true},/Wetter/.test(t)?2500:6000)};
 function save(){delete S._mig;LS.set('zs-state',S);clearTimeout(tSave);tSave=setTimeout(()=>{if(!stateRef)return;const body={v:2,t:Date.now(),j:JSON.stringify(S)};lastPush=body.t;chain=chain.then(()=>stateRef.set(body)).then(()=>status('Saved to your account ✓')).catch(e=>{console.warn('cloud save failed',e);status(e&&/quota|resource-exhausted/.test(e.code||'')?'Storage full: please delete some old notes':'Not saved to your account yet ('+((e&&e.code)||'error')+'), kept on this device')})},700)}
 const cloudS=d=>{if(!d)return null;if(d.j){try{return JSON.parse(d.j)}catch(e){return null}}return d.s||null};
 function addLeaves(n){S.leaves+=n;drawPlant();save()}
