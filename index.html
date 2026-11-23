@@ -845,7 +845,7 @@ $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
 if(S._mig)save();buildRoom();status('Saving in this browser');
 /* ---------- accounts: Firebase (Google sign-in + Firestore) or guest ---------- */
 // Paste the config object from Firebase console → Project settings → Your apps → Web app.
-const FIREBASE_CONFIG=null;
+const FIREBASE_CONFIG={apiKey:"AIzaSyAtl-n-xNp6MjuYBFpQnLHitL35mmR9mxk",authDomain:"zauberschule-83b7d.firebaseapp.com",projectId:"zauberschule-83b7d",storageBucket:"zauberschule-83b7d.firebasestorage.app",messagingSenderId:"999358015232",appId:"1:999358015232:web:c1b9c0825345b5065375e5"};
 let FB=null,lastPush=0,cloudUser=null;
 const loadJs=src=>new Promise((res,rej)=>{const s2=document.createElement('script');s2.src=src;s2.onload=res;s2.onerror=rej;document.head.appendChild(s2)});
 async function fbInit(){if(!FIREBASE_CONFIG)return null;if(FB)return FB;const base='https://www.gstatic.com/firebasejs/10.12.2/';await loadJs(base+'firebase-app-compat.js');await Promise.all([loadJs(base+'firebase-auth-compat.js'),loadJs(base+'firebase-firestore-compat.js')]);
