@@ -504,9 +504,9 @@ function unzoom(){if(!zoomT)return;zoomT=null;applyT();setTimeout(()=>$('#world'
 function hit(st,i){if(st==='daynight')return toggleNight();
   if(st==='wetter'){const order=['morgen','herbst','regen','nacht'];setMood(order[(order.indexOf(S.mood)+1)%4]);save();buildRoom();return}
   const sp=RD().spots[+i];
-  if(st==='tagebuch'&&room==='bib'){zoomTo(sp.zoom[0],sp.zoom[1],()=>{$('#closeup').classList.add('on');setTimeout(()=>open(st),550)});return}
+  if(st==='tagebuch'&&room==='bib'){zoomTo(sp.zoom[0],sp.zoom[1],()=>{$('#closeup').classList.add('on');setTimeout(()=>openPanel(st),550)});return}
   if(st==='mindmap'){zoomTo(sp.zoom[0],sp.zoom[1],()=>openEye());return}
-  if(sp&&sp.zoom){zoomTo(sp.zoom[0],sp.zoom[1],()=>open(st));return}open(st)}
+  if(sp&&sp.zoom){zoomTo(sp.zoom[0],sp.zoom[1],()=>openPanel(st));return}openPanel(st)}
 /* stage interaction: drag to look around, gentle parallax */
 {let drag=null,moved=false;const st=$('#stage');
  st.addEventListener('pointerdown',e=>{drag={x:e.clientX,y:e.clientY,px:pan.x,py:pan.y};moved=false});
@@ -565,11 +565,11 @@ $('#eye').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if
   if(a==='eyeclose'){closeEye();return}
   if(a==='eyezin'||a==='eyezout'){const [x,y,w]=EYE.vb;eyeZoomAt(a==='eyezin'?.7:1/.7,x+w/2,y+w/2);return}
   closeEye();unzoom();
-  if(a==='eyeopen'){open(d.k);return}
-  if(a==='eyevocab'){open('vocab');P.vt=d.id;render();return}
-  if(a==='eyepin'){open('pin');pinOpen=d.id;render();return}
-  if(a==='eyepult'){open('pult');pinOpen=d.id;render();return}
-  if(a==='eyenote'){const id=d.id;open(d.k);tab='notes';render();const el2=document.querySelector(`[data-nid="${id}"]`);if(el2){el2.scrollIntoView({block:'center'});el2.classList.add('flash')}}});
+  if(a==='eyeopen'){openPanel(d.k);return}
+  if(a==='eyevocab'){openPanel('vocab');P.vt=d.id;render();return}
+  if(a==='eyepin'){openPanel('pin');pinOpen=d.id;render();return}
+  if(a==='eyepult'){openPanel('pult');pinOpen=d.id;render();return}
+  if(a==='eyenote'){const id=d.id;openPanel(d.k);tab='notes';render();const el2=document.querySelector(`[data-nid="${id}"]`);if(el2){el2.scrollIntoView({block:'center'});el2.classList.add('flash')}}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#eye').hidden)closeEye()});
 function eyeSetVB(x,y,w){w=Math.max(110,Math.min(1000,w));if(w>=1000){x=0;y=0}else{x=Math.max(-60,Math.min(1060-w,x));y=Math.max(-60,Math.min(1060-w,y))}EYE.vb=[x,y,w,w];const svg=$('#eyesvg');svg.setAttribute('viewBox',EYE.vb.join(' '));const lab=w<560&&!EYE.sel;if(lab!==EYE.lab){EYE.lab=lab;svg.innerHTML=eyeSVG()}}
 function eyeZoomAt(f,sx,sy){cancelAnimationFrame(EYE.anim);const [x,y,w]=EYE.vb,nw=Math.max(110,Math.min(1000,w*f)),k=nw/w;eyeSetVB(sx-(sx-x)*k,sy-(sy-y)*k,nw)}
@@ -629,7 +629,7 @@ function ytPause(){if(YTP&&YTP.pauseVideo)YTP.pauseVideo();ytSet(false,'Paused')
 const bare=w=>String(w).replace(/\s*\(.*?\)/g,'').trim();
 const norm=s=>String(s).toLowerCase().replace(/[.!?,]/g,'').replace(/^(er|sie|es)\s+/,'').replace(/\s+/g,' ').trim();
 function roomOf(k){return k.startsWith('pin:')?(k==='pin:fragen'?'fragen':isSpeak(k.slice(4))?'pult':'pin'):k}
-function openNote(k,id){const room=roomOf(k);open(room);if(room==='pin'||room==='pult')pinOpen=k.slice(4);tab='notes';render();const el=id&&document.querySelector(`[data-nid="${id}"]`);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash')}}
+function openNote(k,id){const room=roomOf(k);openPanel(room);if(room==='pin'||room==='pult')pinOpen=k.slice(4);tab='notes';render();const el=id&&document.querySelector(`[data-nid="${id}"]`);if(el){el.scrollIntoView({block:'center'});el.classList.add('flash')}}
 function exGen(){const G=[],notes=[];for(const [k,arr] of Object.entries(S.notes)){if(k==='vocab')continue;(arr||[]).forEach(n=>{if(n.t&&n.b)notes.push([k,n])})}
   if(notes.length)G.push([3,()=>{const [k,n]=pick(notes);return {key:'n'+n.id,kind:'self',tag:(ST[roomOf(k)]||{}).n||'',q:`What do you remember about <b>${esc(n.t)}</b>?`,hint:'Think of the rule and one example, then check.',reveal:md(n.b),seen:n.id,ref:[k,n.id],label:n.t}}]);
   if(S.vocab.length)G.push([2,()=>{const v=pick(S.vocab),de=Math.random()<.5;return {key:'v'+v.id+de,kind:'self',tag:'Wortschatz'+(v.topic?' · '+v.topic:''),q:`<span lang="${de?'de':'en'}" style="font-size:24px">${esc(de?v.de:v.en)}</span>`,hint:de?'What does it mean in English?':'How do you say it in German?',reveal:`<p style="font-size:20px;text-align:center"><b>${esc(de?v.en:v.de)}</b></p>`,seen:'vt:'+(v.topic||'Andere'),ref:['vocab'],label:v.de}}]);
@@ -657,7 +657,7 @@ function examV(){const E=P.ex;
 
 /* ---------- panel ---------- */
 let cur=null,tab='notes',editing=null,P={},JE=null,pinOpen=null,lastFocus=null;
-function open(k){lastFocus=document.activeElement;cur=k;tab=ST[k].game?'notes':'main';editing=null;P={};pinOpen=null;if(k==='tagebuch')JE=JE||newJE();$('#ov').hidden=false;render();$('#pclose').focus()}
+function openPanel(k){lastFocus=document.activeElement;cur=k;tab=ST[k].game?'notes':'main';editing=null;P={};pinOpen=null;if(k==='tagebuch')JE=JE||newJE();$('#ov').hidden=false;render();$('#pclose').focus()}
 function close(){$('#ov').hidden=true;cur=null;$('#closeup').classList.remove('on');unzoom();lastFocus&&lastFocus.focus&&lastFocus.focus()}
 function newJE(){const d=LS.get('zs-draft');return d&&d.text?d:{id:null,date:today(),prompt:pick(PROMPTS),text:''}}
 function render(){const s=ST[cur];document.querySelector('.sh').classList.toggle('hero',cur==='platten');$('#part').innerHTML=ART_IMG[cur]?`<img src="${ART_IMG[cur]}" alt="">`:(cur==='vocab'?'<div class="potion" aria-hidden="true"></div>':'');$('#pobj').textContent=s.obj;$('#ptitle').textContent=s.n;$('#pen').textContent=s.en;
@@ -848,7 +848,7 @@ $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
   case 'jnoprompt':JE.prompt=null;JE.text=$('#jtext').value;break;
   case 'jsave':jSave();return;
   case 'jnew':JE={id:null,date:today(),prompt:pick(PROMPTS),text:''};LS.set('zs-draft',null);break;
-  case 'jedit':{const x=J.find(y=>y.id===d.id);if(!x)return;JE={id:x.id,date:x.date,prompt:x.prompt,ch:x.ch||null,text:x.text};if(cur!=='tagebuch')open('tagebuch');else render();$('#pbody').scrollTop=0;$('.sheet').scrollTop=0;$('#jtext').focus();return}
+  case 'jedit':{const x=J.find(y=>y.id===d.id);if(!x)return;JE={id:x.id,date:x.date,prompt:x.prompt,ch:x.ch||null,text:x.text};if(cur!=='tagebuch')openPanel('tagebuch');else render();$('#pbody').scrollTop=0;$('.sheet').scrollTop=0;$('#jtext').focus();return}
   case 'jdel':if(!armed(b))return;jDel(d.id);return;
   case 'jcopy':{const x=J.find(y=>y.id===d.id);if(!x)return;try{navigator.clipboard.writeText(x.text).then(()=>{b.textContent='Copied ✓'},()=>{b.textContent='Couldn\'t copy'})}catch(err){b.textContent='Couldn\'t copy'}return}
   case 'pinopen':pinOpen=d.id;editing=null;break;
@@ -858,14 +858,14 @@ $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
   case 'pindel':{if(!armed(b))return;S.pins=S.pins.filter(x=>x.id!==pinOpen);delete S.notes['pin:'+pinOpen];pinOpen=null;drawPins();save();break}
   case 'rec':{const m=d.m;setMood(m);buildRoom();save();const url=S.links[m];if(!ytParse(url||'')){P.yt=1;ytMsg='Add a YouTube link for '+MOODS[m].n+' below, then tap the record again.';break}if(ytOn&&ytKey===m){ytPause();break}playFaded(url,m);break}
   case 'stop':stopMusic();ytPause();ytKey=null;ytMsg='';break;
-  case 'openlogs':open('logs');return;
-  case 'opentagebuch':open('tagebuch');return;
+  case 'openlogs':openPanel('logs');return;
+  case 'opentagebuch':openPanel('tagebuch');return;
   case 'saverooms':{P.rm=1;let bad=0;S.roomLinks=S.roomLinks||{};for(const k of Object.keys(ROOMS)){const v=$('#rl-'+k).value.trim();if(v&&!ytParse(v)){bad++;continue}S.roomLinks[k]=v}S.roomOn=$('#roomon').checked;save();render();const m=$('#rmmsg');if(m)m.textContent=bad?'Some links were skipped: they need to be YouTube links.':'Saved ✓';if(ytKey&&ytKey.startsWith('room:')){ytKey=null}if(S.roomOn)roomMusic();else if(ytKey===null&&ytOn)ytPause();return}
   case 'qadd':{const t=$('#qtext').value.trim();if(!t)return;S.inbox.unshift({id:'q'+Date.now(),text:t,created:Date.now()});save();break}
   case 'qmove':{const sel=$('#mv-'+d.id);moveNote(d.id,sel.value);b.textContent='Moved ✓';break}
   case 'qdel':if(!armed(b))return;S.inbox=S.inbox.filter(x=>x.id!==d.id);save();break;
   case 'mmbranch':P.mm=d.k||null;break;
-  case 'mmvocab':open('vocab');P.vt=d.id;render();return;
+  case 'mmvocab':openPanel('vocab');P.vt=d.id;render();return;
   case 'vtopic':P.vt=d.v||'';P.vq=null;P.vcur=null;break;
   case 'vdir':P.vdir=d.v;P.vflip=false;break;
   case 'vflip':P.vflip=!P.vflip;break;
@@ -873,9 +873,9 @@ $('#pbody').addEventListener('click',e=>{const b=e.target.closest('[data-act]');
   case 'wagain':P.total=(P.total||0)+1;(P.vq||(P.vq=[])).push(P.vcur);vNextCard();break;
   case 'vadd':{const de=$('#vde').value.trim(),en=$('#ven').value.trim(),t=$('#vtop').value.trim()||'Andere';if(!de)return;S.vocab.unshift({id:'v'+Date.now(),de,en,topic:t});P.vq=null;drawJar();save();render();const f=$('#vde');f&&f.focus();return}
   case 'vrm':S.vocab=S.vocab.filter(v=>v.id!==d.id);P.vq=null;drawJar();save();break;
-  case 'mmopen':open(d.k);return;
-  case 'mmpin':open('pin');pinOpen=d.id;render();return;
-  case 'mmnote':{const id=d.id;open(d.k);tab='notes';render();const a=document.querySelector(`[data-nid="${id}"]`);if(a){a.scrollIntoView({block:'center'});a.classList.add('flash')}return}
+  case 'mmopen':openPanel(d.k);return;
+  case 'mmpin':openPanel('pin');pinOpen=d.id;render();return;
+  case 'mmnote':{const id=d.id;openPanel(d.k);tab='notes';render();const a=document.querySelector(`[data-nid="${id}"]`);if(a){a.scrollIntoView({block:'center'});a.classList.add('flash')}return}
   case 'myrec':{const r=S.myrecs[+d.i];if(!r)return;if(MOODS[r.mood]){setMood(r.mood);buildRoom()}save();const key='my'+d.i;if(ytOn&&ytKey===key){ytPause();break}playFaded(r.url,key);break}
   case 'savelinks':{P.yt=1;let bad=0;for(const k of Object.keys(MOODS)){const v=$('#lk-'+k).value.trim();if(v&&!ytParse(v)){bad++;continue}if(v)S.links[k]=v;else delete S.links[k]}save();render();const m=$('#ytmsg');if(m)m.textContent=bad?'Some links were skipped: they need to be YouTube links.':'Saved ✓';return}
   case 'addmyrec':{P.yt=1;const n=$('#mrn').value.trim(),u=$('#mrl').value.trim();if(!n||!ytParse(u)){$('#ytmsg').textContent='Add a name and a YouTube link.';return}S.myrecs.push({n,url:u,mood:$('#mrm').value});save();break}
@@ -916,7 +916,7 @@ let FB=null,lastPush=0,cloudUser=null;
 const loadJs=src=>new Promise((res,rej)=>{const s2=document.createElement('script');s2.src=src;s2.onload=res;s2.onerror=rej;document.head.appendChild(s2)});
 async function fbInit(){if(!FIREBASE_CONFIG)return null;if(FB)return FB;const base='https://www.gstatic.com/firebasejs/10.12.2/';await loadJs(base+'firebase-app-compat.js');await Promise.all([loadJs(base+'firebase-auth-compat.js'),loadJs(base+'firebase-firestore-compat.js')]);
   firebase.initializeApp(FIREBASE_CONFIG);const fs=firebase.firestore();fs.settings({ignoreUndefinedProperties:true,merge:true});FB={auth:firebase.auth(),fs};return FB}
-function showGate(msg){$('#gate').hidden=false;$('#gmsg').textContent=msg||(FIREBASE_CONFIG?'':'Sign-in isn\'t switched on yet. You can explore as a guest.');$('#gsignin').disabled=!FIREBASE_CONFIG;setTimeout(()=>$(FIREBASE_CONFIG?'#gsignin':'#gguest').focus(),50)}
+function showGate(msg){$('#gate').hidden=false;if(FIREBASE_CONFIG)fbReady().catch(()=>{});$('#gmsg').textContent=msg||(FIREBASE_CONFIG?'':'Sign-in isn\'t switched on yet. You can explore as a guest.');$('#gsignin').disabled=!FIREBASE_CONFIG;setTimeout(()=>$(FIREBASE_CONFIG?'#gsignin':'#gguest').focus(),50)}
 function hideGate(){$('#gate').hidden=true;setTimeout(roomMusic,100)}
 function acctBtn(){const b=$('#acct');b.hidden=false;b.textContent=cloudUser?'Sign out'+(cloudUser.displayName?' ('+cloudUser.displayName.split(' ')[0]+')':''):'Sign in'}
 function asGuest(){LS.set('zs-mode','guest');GUEST=true;cloudUser=null;hideGate();acctBtn();status('Guest: exploring, nothing is saved')}
@@ -931,7 +931,14 @@ async function connectCloud(u){GUEST=false;cloudUser=u;acctBtn();status('Connect
     if(cur)render();
   }catch(e){status('Can\'t reach your account, saving here for now')}}
 document.addEventListener('visibilitychange',async()=>{if(document.hidden||!stateRef)return;try{const snap=await stateRef.get();const d=snap.exists&&snap.data();if(d&&d.s&&(d.t||0)>lastPush+1000){lastPush=d.t;S=merge(d.s);LS.set('zs-state',S);buildRoom();if(cur&&!editing)render();status('Updated from your other device ✓')}}catch(e){}});
-async function signIn(){$('#gmsg').textContent='Opening Google sign-in…';try{const fb=await fbInit();const prov=new firebase.auth.GoogleAuthProvider();try{await fb.auth.signInWithPopup(prov)}catch(e){if(e&&/popup/.test(e.code||''))await fb.auth.signInWithRedirect(prov);else throw e}}catch(e){$('#gmsg').textContent=e&&e.code==='auth/unauthorized-domain'?'This website address isn\'t allowed in Firebase yet (Authentication → Settings → Authorized domains).':'Sign-in didn\'t work. You can try again or explore as a guest.'}}
+let authWatch=false;
+function onSignedIn(u){if(!u)return;LS.set('zs-mode','google');hideGate();if(!cloudUser||cloudUser.uid!==u.uid)connectCloud(u)}
+async function fbReady(){const fb=await fbInit();if(fb&&!authWatch){authWatch=true;fb.auth.onAuthStateChanged(u=>{if(u)onSignedIn(u);else if(LS.get('zs-mode')==='google'){LS.set('zs-mode',null);cloudUser=null;showGate('Please sign in again.')}})}return fb}
+const AUTH_MSG={'auth/unauthorized-domain':'This website address isn\'t allowed in Firebase yet (Authentication → Settings → Authorized domains).','auth/popup-blocked':'Your browser blocked the Google window. Allow pop-ups for this site and try again.','auth/popup-closed-by-user':'The Google window was closed before signing in. Try again.','auth/cancelled-popup-request':'Try again: only one Google window can be open.','auth/network-request-failed':'No connection to Google. Check your internet and try again.','auth/operation-not-allowed':'Google sign-in is switched off in Firebase (Authentication → Sign-in method).','auth/internal-error':'Google sign-in hit an error. Try again, or allow third-party cookies for this site.'};
+function signIn(){const msg=$('#gmsg');msg.textContent='Opening Google sign-in…';
+  if(!FB||!FB.auth){fbReady().then(()=>{msg.textContent='Ready, please tap "Sign in with Google" again.'}).catch(e=>{msg.textContent='Can\'t reach Google right now ('+((e&&e.code)||'offline')+').'});return}
+  const prov=new firebase.auth.GoogleAuthProvider();prov.setCustomParameters({prompt:'select_account'});
+  FB.auth.signInWithPopup(prov).then(r=>onSignedIn(r&&r.user)).catch(e=>{const c=(e&&e.code)||((e&&e.message)?String(e.message).slice(0,90):'unknown');console.warn('sign-in error',e);if(c==='auth/popup-blocked'){msg.textContent=AUTH_MSG[c];return}msg.textContent=(AUTH_MSG[c]||'Sign-in didn\'t work.')+' ('+c+')'})}
 $('#gsignin').onclick=signIn;
 $('#gguest').onclick=asGuest;
 $('#acct').onclick=async()=>{const b=$('#acct');if(!cloudUser){showGate();return}if(!armed(b))return;try{await FB.auth.signOut()}catch(e){}LS.set('zs-mode',null);LS.set('zs-state',null);LS.set('zs-journal',null);LS.set('zs-draft',null);location.reload()};
@@ -939,7 +946,7 @@ $('#acct').onclick=async()=>{const b=$('#acct');if(!cloudUser){showGate();return
   if(mode==='google'&&FIREBASE_CONFIG){status('Connecting…');try{await fbInit()}catch(e){status('Offline: saving in this browser for now');acctBtn();return}}
   else if(mode==='guest'){asGuest()}
   else showGate();
-  if(FIREBASE_CONFIG&&(mode==='google'||!mode)){try{const fb=await fbInit();fb.auth.onAuthStateChanged(u=>{if(u){LS.set('zs-mode','google');hideGate();connectCloud(u)}else if(LS.get('zs-mode')==='google'){LS.set('zs-mode',null);cloudUser=null;showGate('Please sign in again.')}})}catch(e){if(!LS.get('zs-mode'))$('#gmsg').textContent='Can\'t reach Google right now. You can explore as a guest.'}}
+  if(FIREBASE_CONFIG&&(mode==='google'||!mode)){try{await fbReady()}catch(e){if(!LS.get('zs-mode'))$('#gmsg').textContent='Can\'t reach Google right now. You can explore as a guest.'}}
 })();
 }
 </script>
