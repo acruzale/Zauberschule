@@ -440,7 +440,8 @@ let S=merge(LS.get('zs-state'));if(!LS.get('zs-state')){const h=new Date().getHo
 let J=LS.get('zs-journal')||[];
 let db=null,stateRef=null,jCol=null,mode='local',chain=Promise.resolve(),tSave=null;
 const status=t=>{$('#status').textContent=t};
-function save(){delete S._mig;LS.set('zs-state',S);clearTimeout(tSave);tSave=setTimeout(()=>{if(!stateRef)return;const body={v:1,t:Date.now(),s:structuredClone(S)};lastPush=body.t;chain=chain.then(()=>stateRef.set(body)).then(()=>status('Saved to your account ✓')).catch(e=>status(e&&e.code==='quota_exceeded'?'Storage full: please delete some old notes':'Not saved to your account, only on this device'))},700)}
+function save(){delete S._mig;LS.set('zs-state',S);clearTimeout(tSave);tSave=setTimeout(()=>{if(!stateRef)return;const body={v:2,t:Date.now(),j:JSON.stringify(S)};lastPush=body.t;chain=chain.then(()=>stateRef.set(body)).then(()=>status('Saved to your account ✓')).catch(e=>{console.warn('cloud save failed',e);status(e&&/quota|resource-exhausted/.test(e.code||'')?'Storage full: please delete some old notes':'Not saved to your account yet ('+((e&&e.code)||'error')+'), kept on this device')})},700)}
+const cloudS=d=>{if(!d)return null;if(d.j){try{return JSON.parse(d.j)}catch(e){return null}}return d.s||null};
 function addLeaves(n){S.leaves+=n;drawPlant();save()}
 function registerCorrect(n){if(cur&&S.prac)S.prac[cur]=Date.now();S.correct+=n;while(S.correct>=5){S.correct-=5;S.leaves++}drawPlant();save()}
 
@@ -927,14 +928,14 @@ function asGuest(){LS.set('zs-mode','guest');GUEST=true;cloudUser=null;hideGate(
 async function connectCloud(u){GUEST=false;cloudUser=u;acctBtn();status('Connecting to your account…');
   try{const fs=FB.fs,ref=fs.doc('users/'+u.uid+'/app/state');
     const snap=await ref.get();stateRef=ref;
-    if(snap.exists&&snap.data().s){S=merge(snap.data().s);lastPush=snap.data().t||0;if(S._mig)save();else LS.set('zs-state',S);buildRoom();status('Saved to your account ✓')}else{save();status('Your notes are now saved to your account ✓')}
+    if(snap.exists&&cloudS(snap.data())){S=merge(cloudS(snap.data()));lastPush=snap.data().t||0;if(S._mig)save();else LS.set('zs-state',S);buildRoom();status('Saved to your account ✓')}else{save();status('Your notes are now saved to your account ✓')}
     jCol=fs.collection('users/'+u.uid+'/journal');
     const localOnly=[...J];let first=true;
     jCol.onSnapshot(qs=>{const remote=qs.docs.map(x=>({id:x.id,...x.data()}));if(first&&!qs.metadata.fromCache){first=false;const ids=new Set(remote.map(r=>r.id));localOnly.filter(x=>!ids.has(x.id)).forEach(x=>{const {id:eid,...rest}=x;jCol.doc(eid).set(rest).catch(()=>{})})}
       const ids=new Set(remote.map(r=>r.id));J=[...remote,...(first?localOnly.filter(x=>!ids.has(x.id)):[])];LS.set('zs-journal',J);if((cur==='tagebuch'||cur==='logs')&&document.activeElement.id!=='jtext'&&document.activeElement.id!=='jcorr')render()},()=>status('Journal saved on this device only'));
     if(cur)render();
   }catch(e){status('Can\'t reach your account, saving here for now')}}
-document.addEventListener('visibilitychange',async()=>{if(document.hidden||!stateRef)return;try{const snap=await stateRef.get();const d=snap.exists&&snap.data();if(d&&d.s&&(d.t||0)>lastPush+1000){lastPush=d.t;S=merge(d.s);LS.set('zs-state',S);buildRoom();if(cur&&!editing)render();status('Updated from your other device ✓')}}catch(e){}});
+document.addEventListener('visibilitychange',async()=>{if(document.hidden||!stateRef)return;try{const snap=await stateRef.get();const d=snap.exists&&snap.data();if(d&&cloudS(d)&&(d.t||0)>lastPush+1000){lastPush=d.t;S=merge(cloudS(d));LS.set('zs-state',S);buildRoom();if(cur&&!editing)render();status('Updated from your other device ✓')}}catch(e){}});
 let authWatch=false;
 function onSignedIn(u){if(!u)return;LS.set('zs-mode','google');hideGate();if(!cloudUser||cloudUser.uid!==u.uid)connectCloud(u)}
 async function fbReady(){const fb=await fbInit();if(fb&&!authWatch){authWatch=true;fb.auth.onAuthStateChanged(u=>{if(u)onSignedIn(u);else if(LS.get('zs-mode')==='google'){LS.set('zs-mode',null);cloudUser=null;showGate('Please sign in again.')}})}return fb}
