@@ -549,6 +549,7 @@ function buildRoom(){const R=RD(),pct=(v,t)=>(v/t*100)+'%';
   layout();dustReset()}
 let roomBusy=false;
 function goRoom(k){if(k===room||roomBusy)return;roomBusy=true;const prev=room;room=k;const R2=RD(),src=R2.img||(isNight()?R2.night:R2.day);room=prev;
+  roomMusic(k);
   let done=false;const go=()=>{if(done)return;done=true;crossfade(()=>{room=k;LS.set('zs-room',k);pan={x:.5,y:.5};snapT();buildRoom()},500);roomBusy=false;roomMusic()};
   const im=new Image();im.onload=im.onerror=go;im.src=src;if(im.complete)go();setTimeout(go,900)}
 const ICON={sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>',moon:'<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5a8.6 8.6 0 1 0 11.1 11.1z"/></svg>',spk:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19z" fill="currentColor"/><path d="M15.5 8.6a4.8 4.8 0 0 1 0 6.8M18.4 5.7a8.9 8.9 0 0 1 0 12.6"/></svg>',spkx:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19z" fill="currentColor"/><path d="m16 9.5 5 5M21 9.5l-5 5"/></svg>'};
@@ -665,24 +666,33 @@ function ytLoadApi(){if(ytReady)return ytReady;ytReady=new Promise(res=>{window.
 function ytSet(on,msg){ytOn=on;ytMsg=msg||'';document.body.classList.toggle('ytplaying',on);document.querySelectorAll('.rec[data-key]').forEach(c=>{const pl=on&&c.dataset.key===ytKey;c.classList.toggle('playing',pl);c.setAttribute('aria-pressed',pl);const sm=c.querySelector('.st');if(sm)sm.textContent=pl?' · playing ♪':(c.dataset.has?' · tap to play':' · add a link below')});musicUI();const b=$('#ytbtn');if(b){b.textContent=on?'❚❚ Pause':'▶ Play';b.setAttribute('aria-pressed',on)}const m=$('#ytstate');if(m)m.textContent=ytMsg}
 let fadeT=null;
 function ytFade(to,ms,done){clearInterval(fadeT);if(!YTP||typeof YTP.getVolume!=='function'){done&&done();return}let v=YTP.getVolume();const steps=Math.max(1,Math.round(ms/60)),dv=(to-v)/steps;let i=0;fadeT=setInterval(()=>{i++;v+=dv;try{YTP.setVolume(Math.max(0,Math.min(100,Math.round(v))))}catch(e){}if(i>=steps){clearInterval(fadeT);done&&done()}},60)}
-function playFaded(url,key){const fading=YTP&&ytOn&&YTP._src!==url&&typeof YTP.getVolume==='function';ytKey=key;ytSet(true,'Loading…');if(fading)ytFade(0,700,()=>ytPlay(url,key));else ytPlay(url,key)}
+/* iPad/iPhone only allow sound to start straight from a tap, and ignore volume changes: switch at once there */
+const IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function playFaded(url,key){const fading=!IOS&&YTP&&YTP._ok&&ytOn&&YTP._src!==url&&typeof YTP.getVolume==='function';ytKey=key;ytSet(true,'Loading…');if(fading)ytFade(0,700,()=>{if(ytKey===key)ytPlay(url,key)});else ytPlay(url,key)}
 let gestured=false,muted=LS.get('zs-mute')===true;
 function setMuted(m){muted=m;LS.set('zs-mute',m);musicUI()}
 function musicUI(){const mb=$('#mute');if(mb){mb.innerHTML=muted?ICON.spkx:ICON.spk;mb.setAttribute('aria-pressed',muted);mb.setAttribute('aria-label',muted?'Music is off. Turn room music on':'Turn all music off');mb.title=muted?'Music off · tap for room music':'Mute all music'}
   const pb=document.querySelector('[data-act=stop],[data-act=playmusic]');if(pb){pb.dataset.act=ytOn?'stop':'playmusic';pb.textContent=ytOn?'■ Stop music':'▶ Play music'}}
-function roomMusic(){if(!gestured||muted||!S.roomOn||!$('#gate').hidden)return;const url=(S.roomLinks||{})[room];if(!ytParse(url||''))return;const key='room:'+room;if(ytKey===key&&ytOn)return;playFaded(url,key)}
+function roomMusic(r){r=r||room;if(!gestured||muted||!S.roomOn||!$('#gate').hidden)return;const url=(S.roomLinks||{})[r];if(!ytParse(url||''))return;const key='room:'+r;if(ytKey===key&&ytOn)return;playFaded(url,key)}
 ['pointerdown','keydown'].forEach(t=>document.addEventListener(t,()=>{if(gestured)return;gestured=true;setTimeout(roomMusic,50)},{capture:true}));
 async function ytPlay(url,key,fadeIn){const p=ytParse(url||'');if(!p){ytSet(false,'This record has no YouTube link yet.');return}ytKey=key;
-  stopMusic();ytSet(true,'Loading…');await ytLoadApi();
-  if(YTP&&YTP._src===url){YTP.setVolume(fadeIn?0:Math.round(vol*100));YTP.playVideo();if(fadeIn)ytFade(Math.round(vol*100),2200);return}
+  stopMusic();ytSet(true,'Loading…');
+  if(YTP&&YTP._ok){ytSwitch(url,p,fadeIn);return}
+  await ytLoadApi();
+  if(YTP&&YTP._ok){ytSwitch(url,p,fadeIn);return}
   if(YTP){try{YTP.destroy()}catch(e){}YTP=null}
   let host=$('#ytp');if(!host){host=document.createElement('div');host.id='ytp';host.setAttribute('aria-hidden','true');document.body.appendChild(host)}host.innerHTML='<div id="ytpi"></div>';
   const pv={autoplay:1,playsinline:1,controls:0,disablekb:1};if(p.list){pv.listType='playlist';pv.list=p.list;pv.loop=1}
   YTP=new YT.Player('ytpi',{width:200,height:200,videoId:p.v||undefined,playerVars:pv,events:{
-    onReady:e=>{e.target.setVolume(fadeIn?0:Math.round(vol*100));e.target.playVideo();if(fadeIn)ytFade(Math.round(vol*100),2200)},
-    onStateChange:e=>{const st=e.data;if(st===1)ytSet(true,'Playing ♪');else if(st===2)ytSet(false,'Paused');else if(st===0){if(!p.list){e.target.seekTo(0);e.target.playVideo()}}},
+    onReady:e=>{YTP._ok=true;if(YTP._src!==url){ytSwitch(YTP._src,ytParse(YTP._src),fadeIn);return}e.target.setVolume(fadeIn?0:Math.round(vol*100));e.target.playVideo();if(fadeIn)ytFade(Math.round(vol*100),2200)},
+    onStateChange:e=>{const st=e.data;if(st===1)ytSet(true,'Playing ♪');else if(st===2)ytSet(false,'Paused');else if(st===0){const q=YTP&&YTP._p||p;if(!q.list){e.target.seekTo(0);e.target.playVideo()}}},
     onError:e=>{ytSet(false,[101,150].includes(e.data)?'This video doesn\'t allow playing outside YouTube. Try another link.':'YouTube could not play this link.')}}});
-  YTP._src=url}
+  YTP._src=url;YTP._p=p}
+function ytSwitch(url,p,fadeIn){try{YTP.setVolume(fadeIn?0:Math.round(vol*100))}catch(e){}
+  if(YTP._src===url)YTP.playVideo();
+  else if(p.list){YTP.loadPlaylist({listType:'playlist',list:p.list,index:0});try{YTP.setLoop(true)}catch(e){}}
+  else YTP.loadVideoById(p.v);
+  YTP._src=url;YTP._p=p;if(fadeIn)ytFade(Math.round(vol*100),2200)}
 function ytPause(){if(YTP&&YTP.pauseVideo)YTP.pauseVideo();ytSet(false,'Paused')}
 
 /* ---------- Mini-Prüfung: mixed quiz from all notes ---------- */
